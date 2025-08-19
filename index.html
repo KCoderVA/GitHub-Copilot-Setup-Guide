@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+<!-- SEO & Social Meta -->
+<meta name="description" content="GitHub Copilot Enterprise setup guide for VA employees: account, environment, personalization, prompts, and healthcare use cases." />
+<meta name="author" content="Kyle J. Coder" />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="https://kcoderva.github.io/" />
+<meta property="og:title" content="GitHub Copilot Enterprise Setup Guide (VA)" />
+<meta property="og:description" content="Practical VA-focused setup & usage guide for GitHub Copilot Enterprise." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://kcoderva.github.io/" />
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/9919?s=200&v=4" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="GitHub Copilot Enterprise Setup Guide (VA)" />
+<meta name="twitter:description" content="Practical VA-focused setup & usage guide for GitHub Copilot Enterprise." />
+
+<title>GitHub Copilot Enterprise Setup Guide for VA Employees</title>
+<link rel="shortcut icon" href="./favicon.ico" />
+<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/reset.css" />
+<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/reveal.css" />
+<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/theme/white.css" id="theme" />
+<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/plugin/highlight/monokai.css" />
+
+<!--
+Copyright 2025 Kyle J. Coder
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!--
+Generate-ProductivityReport.ps1
+VA Power Platform Productivity Reporting Script
+Author: Kyle J. Coder - Edward Hines Jr. VA Hospital
+Purpose: Generates comprehensive productivity reports from workspace activity with enhanced Git statistics
+-->
+
+
+<style>
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+.reveal h1, .reveal h2, .reveal h3 { color: #003366; font-weight: bold; }
+.reveal .slides section { text-align: left; max-width: 100vw; }
+.reveal .center { text-align: center; }
+.reveal .step-number { 
+    background: #003366; 
+    color: white; 
+    border-radius: 50%; 
+    padding: 0.15em 0.4em; 
+    margin-right: 0.5em; 
+    font-weight: bold; 
+}
+.reveal .highlight { background-color: #fff3cd; padding: 0.12em 0.3em; border-left: 4px solid #ffc107; font-size: 0.9em; }
+.reveal .important { background-color: #f8d7da; padding: 0.3em; border: 1px solid #f5c6cb; border-radius: 0.25em; font-size: 0.94em; }
+.reveal .optional { background-color: #d4edda; padding: 0.3em; border: 1px solid #c3e6cb; border-radius: 0.25em; font-size: 0.94em; }
+.reveal a { color: #0366d6; text-decoration: underline; }
+.reveal a:hover { color: #0056b3; }
+.reveal .slides section { padding-bottom: 5.5em !important; max-height: 74vh; overflow-y: auto; }
+
+/* === FONT SIZE OVERRIDES BASED ON USER REQUEST === */
+#toc .toc-container, #toc .toc-columns ul, #toc ul, #toc li, #toc a, #toc h2 {
+  font-size: 0.8em !important;
+}
+#toc h2 { font-size: 1.025em !important; }
+.reveal .slides section:not(#title):not(#toc) {
+  font-size: 0.9em;
+}
+.reveal .slides section:not(#title):not(#toc) h1 {
+  font-size: 1.08em !important;
+}
+.reveal .slides section:not(#title):not(#toc) h2 {
+  font-size: 0.945em !important;
+}
+.reveal .slides section:not(#title):not(#toc) h3 {
+  font-size: 0.846em !important;
+}
+.reveal .slides section:not(#title):not(#toc) ul,
+.reveal .slides section:not(#title):not(#toc) ol,
+.reveal .slides section:not(#title):not(#toc) p {
+  font-size: 0.765em !important;
+}
+.reveal .slides section:not(#title):not(#toc) table {
+  font-size: 0.738em !important;
+}
+.reveal .slides section:not(#title):not(#toc) pre,
+.reveal .slides section:not(#title):not(#toc) code,
+.reveal .slides section:not(#title):not(#toc) pre code {
+  font-size: 0.684em !important;
+}
+.reveal .splitsteps { font-size: 0.765em !important; }
+.reveal .splitprompt { font-size: 0.684em !important; }
+.reveal .tightlist ul, .reveal .tightlist ol { font-size: 0.7em !important; line-height: 1.22em; margin-bottom:0.08em;}
+#toc .toc-container { font-size: 0.8em !important; margin-top: 0.5em;}
+#toc .toc-columns ul {
+    columns: 2;
+    -webkit-columns: 2;
+    column-gap: 2.2em;
+    margin: 0;
+    padding: 0;
+}
+@media (max-width: 800px) {
+    #toc .toc-columns ul { columns: 1; }
+}
+.reveal pre, .reveal code, .reveal pre code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    background: #f6f8fa;
+    border-radius: 0.45em;
+    padding: 0.8em 0.9em 0.8em 0.9em;
+    margin-top: 1.2em;
+    margin-bottom: 0.5em;
+    position: relative;
+}
+.copy-btn {
+    position: absolute;
+    top: 0.3em;
+    right: 0.6em;
+    background: #eee;
+    border-radius: 0.4em;
+    border: 1px solid #ccc;
+    font-size: 0.8em;
+    padding: 0.12em 0.5em;
+    cursor: pointer;
+    z-index: 2;
+    color: #003366;
+    transition: background 0.14s;
+}
+
+pre, pre code, code, .splitprompt pre, .splitprompt code {
+    background: #222 !important;
+    color: #f8f8f2 !important;
+    font-family: 'Fira Mono', 'Consolas', 'Menlo', 'Monaco', 'Liberation Mono', monospace;
+    font-size: 1em;
+    line-height: 1.45;
+    border-radius: 8px;
+    padding: 0.8em 0.8em 0.8em 2em;
+    margin: 0.8em 0.25em 0.8em 0.25em;
+    overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    border: 1px solid #181818;
+    word-break: break-word;
+    white-space: pre;
+}
+
+/* For inline code */
+code:not(pre code) {
+    background: #222 !important;
+    color: #ffd866 !important;
+    padding: 0.13em 0.33em;
+    border-radius: 4px;
+    font-size: 0.97em;
+    box-shadow: none;
+    border: 1px solid #181818;
+    white-space: pre-wrap;
+}
+
+/* Copy button styling for visibility */
+.copy-btn {
+    background: #444 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0.3em 0.8em !important;
+    cursor: pointer !important;
+    font-size: 0.98em !important;
+    margin-bottom: 0.4em;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    transition: background 0.15s;
+}
+.copy-btn:hover, .copy-btn:focus {
+    background: #2d72a3 !important;
+    color: #fff !important;
+}
+.copy-btn:hover { background: #ffc107; color: #222; border-color: #ffbf00;}
+@media (max-width: 900px) {
+  .reveal .slides section { padding-bottom: 6em !important;}
+  .reveal h1 { font-size: 1em !important;}
+  .reveal h2 { font-size: 0.92em !important;}
+  .reveal ul, .reveal ol, .reveal p { font-size: 0.78em !important;}
+  #toc .toc-container, #toc ul, #toc li, #toc a, #toc h2 { font-size: 0.72em !important;}
+}
+@media (max-width: 600px) {
+  .reveal h1, .reveal h2 { font-size: 0.97em !important;}
+  .reveal .slides section { padding-bottom: 6.5em !important;}
+  #toc .toc-container, #toc ul, #toc li, #toc a, #toc h2 { font-size: 0.64em !important;}
+}
+#custom-nav-bar {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2.5em;
+    background: rgba(245, 245, 245, 0.97);
+    border-radius: 2em;
+    padding: 0.35em 1.8em;
+    box-shadow: 0 2px 10px rgba(0,51,102,0.08);
+    font-size: 1.20em;
+}
+#custom-nav-bar button {
+    background: #003366;
+    color: white;
+    border: none;
+    border-radius: 1.2em;
+    padding: 0.28em 1.0em;
+    margin: 0 0.12em;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+    outline: none;
+    box-shadow: 0 1px 4px rgba(0,51,102,0.12);
+}
+#custom-nav-bar button:hover,
+#custom-nav-bar button:focus {
+    background: #0056b3;
+}
+#custom-nav-bar .nav-icon {
+    font-size: 1.12em;
+    vertical-align: middle;
+    margin-right: 0.17em;
+}
+/* Accessibility utilities */
+button:focus, a:focus { outline: 3px solid #0056b3; outline-offset:2px; }
+.skip-link { position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden; }
+.skip-link:focus { position: static !important; width:auto !important; height:auto !important; padding:0.5em 1em; background:#003366; color:#fff; z-index:2000; }
+.print-link { position:fixed; top:8px; right:12px; z-index:1500; font-size:0.65em; background:#003366; color:#fff; padding:0.5em 0.9em; border-radius:1em; text-decoration:none; }
+.print-link:hover, .print-link:focus { background:#0056b3; }
+</style>
+</head>
+<body>
+<a href="#title" class="skip-link">Skip to main content</a>
+<div class="reveal">
+<div class="slides">
+
+ <section id="title">
+    <div class="center">
+        <h2>GitHub Copilot Enterprise Setup Guide</h2>
+        <p style="font-size:0.9em; color:#555; margin-top:2em;">
+            Health Informatics / Clinical Informatics<br>
+            Edward Hines Jr. VA Hospital (v12/578)<br>
+        </p>
+        <p><strong>A Complete Step-by-Step Instructional Aid for Getting Started with GitHub Copilot at VA</strong></p>
+        <p style="font-size:0.65em; color:#555; margin-top:2em;">
+            <em>Developed by:<br>
+            Kyle J. Coder,<br>
+            Program Analyst / Advanced Analytics Team</em>
+        </p>
+    </div>
+</section> 
+
+
+<section id="toc">
+    <h2>Table of Contents</h2>
+    <div class="toc-container">
+      <div class="toc-columns">
+        <ul>
+            <li><a href="#/overview">Overview</a></li>
+            <li><a href="#/prerequisites">Prerequisites</a></li>
+            <li><b>Phase 1: GitHub Account &amp; Enterprise Access</b>
+                <ul>
+                  <li><a href="#/phase1-account">1. Create a GitHub Account</a></li>
+                  <li><a href="#/phase1-access">2. Request VA Enterprise Access</a></li>
+                  <li><a href="#/phase1-confirm">3. Verify Enterprise Access</a></li>
+                </ul>
+            </li>
+            <li><b>Phase 2: Development Environment Setup</b>
+                <ul>
+                  <li><a href="#/phase2-environment">Agent Mode Overview</a></li>
+                  <li><a href="#/phase2-vscode">4. Install Visual Studio Code</a></li>
+                  <li><a href="#/phase2-workspace">5. Create Workspace Directory</a></li>
+                  <li><a href="#/phase2-folders">6. Add Work Folders</a></li>
+                  <li><a href="#/phase2-save">7. Save Workspace Configuration</a></li>
+                  <li><a href="#/phase2-shortcut">8. Create Desktop Shortcut</a></li>
+                  <li><a href="#/phase2-extensions">9. Install Essential Extensions</a></li>
+                </ul>
+            </li>
+            <li><b>Phase 3: Copilot Configuration &amp; Optimization</b>
+                <ul>
+                    <li><a href="#/phase3-config">Configuration & Personalization Overview</a></li>
+                    <li><a href="#/phase3-chat">10. Open Copilot Chat</a></li>
+                    <li><a href="#/phase3-settings">11. Configure Personal Settings</a></li>
+                    <li><a href="#/phase3-settings-prompt">11a. Settings Prompt Block</a></li>
+                    <li><a href="#/phase3-instructions">12. Generate Custom Instructions</a></li>
+                    <li><a href="#/phase3-instructions-prompt">12a. Instructions Prompt Block</a></li>
+                    <li><a href="#/phase3-personalize">13. Personalize Your Copilot</a></li>
+                    <!-- Removed empty duplicate entry -->
+                </ul>
+            </li>
+            <li><b>Phase 4: Practical Applications</b>
+                <ul>
+                    <li><a href="#/phase4-overview">Overview &amp; Use Cases</a></li>
+                    <li><a href="#/phase4-clinical">Clinical Documentation &amp; Patient Care</a></li>
+                    <li><a href="#/phase4-patiented">Patient Education Material Generation</a></li>
+                    <li><a href="#/phase4-qi">Clinical Quality Improvement Projects</a></li>
+                    <li><a href="#/phase4-admin">Administrative Automation</a></li>
+                    <li><a href="#/phase4-research">Research &amp; Data Analysis</a></li>
+                    <li><a href="#/phase4-training">Training &amp; Professional Development</a></li>
+                    <li><a href="#/phase4-emergency">Emergency Preparedness &amp; Crisis Management</a></li>
+                    <li><a href="#/phase4-bottomline">The Bottom Line</a></li>
+                </ul>
+            </li>
+            <li><b>Prompt Templates</b>
+                <ul>
+                    <li><a href="#/prompt-admin">Admin Automation Prompts</a></li>
+                    <li><a href="#/prompt-data">Data Analysis Prompts</a></li>
+                    <li><a href="#/prompt-docs">Documentation Prompts</a></li>
+                    <li><a href="#/prompt-creative">Creative &amp; Educational Prompts</a></li>
+                    <li><a href="#/prompt-imports">Importable Copilot Template Files</a></li>
+                </ul>
+            </li>
+            <li><b>Troubleshooting &amp; Support</b>
+                <ul>
+                    <li><a href="#/troubleshooting">Common Issues</a></li>
+                    <li><a href="#/support">Support &amp; Resources</a></li>
+                </ul>
+            </li>
+            <li><a href="#/last-updated">Developer / Contact Info</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="optional" style="margin-top: 1.2em; font-size:0.5em;">Click any section or step to jump directly, or <b>NEXT</b> to go in order.</div>
+</section>
+
+<section id="overview">
+    <h2>Overview: Why GitHub Copilot Enterprise at VA?</h2>
+    <ul>
+        <li>
+            <strong>GitHub Copilot Enterprise</strong> is an premium AI-powered digital assistant <span class="highlight">approved for VA use</span>. 
+            This guide walks you through step-by-step setup and advanced usage, specifically for healthcare professionals at Edward Hines Jr. VA Hospital.
+        </li>
+        <li>
+            <strong>Agent Mode vs. Standard ChatGPT or AI:</strong>
+            <ul>
+                <li>Directly create, edit, and manage files on your computer (not just text)</li>
+                <li>Read and analyze existing documents (Word, Excel, PDFs)</li>
+                <li>Fetch real-time information from the internet</li>
+                <li>Automate complex, multi-step processes</li>
+                <li>Remember your work patterns and adapt to your VA role</li>
+                <li>Integrate with VA systems while maintaining compliance</li>
+            </ul>
+        </li>
+    </ul>
+    <div class="highlight" style="margin-top:1em;">
+      <b>Key Benefits Uniquely for VA Healthcare Professionals:</b>
+      <ul>
+        <li>Automate repetitive administrative tasks and documentation</li>
+        <li>Create VA-branded patient education and materials</li>
+        <li>Analyze clinical data and generate actionable insights</li>
+        <li>Streamline quality improvement and reporting</li>
+        <li>Build tools for staff training and patient engagement</li>
+      </ul>
+    </div>
+    <div style="margin-top:1em;">
+      <b>Time Investment:</b>
+      <ul>
+        <li>Phase 1 (Required): ~30 min (and 24-36 hrs waiting for approval)</li>
+        <li>Phase 2 (Optional): ~45 min</li>
+        <li>Phase 3 (Configuration): ~30 min</li>
+        <li>Phase 4+ (Implementation): ~60 min</li>
+        <li><b>Total active time:</b> ~2 hours</li>
+      </ul>
+      <br><b>Return on Investment:</b>
+      <br>While VS Code and GitHub's Copilot is specifically geared & built for developers, software engineers, and computer programmers, technically proficient users can double or triple their code output with well configured copilot agents.
+      <br>Average VA Employees, who primarily do more "standard" computer work in clinical, administrative, or support roles can still experience a potential labor reduction of <strong>5-12 hours/week</strong> after implementation!
+      <br>
+      <br>
+    </div>
+</section>
+
+<section id="prerequisites">
+    <h2>Prerequisites</h2>
+    <ul>
+        <li>✅ <strong>Valid VA.gov email address</strong> (personal emails will not work for Copilot Enterprise licensing)</li>
+        <li>✅ <strong>Access to OneDrive or a VA network drive</strong> for file storage and backups</li>
+        <li>✅ <strong>Basic Windows navigation skills:</strong> File Explorer, right-clicking, etc.</li>
+    </ul>
+    <div class="important" style="margin-top:1em;">
+      <ul>
+        <li>Never include PHI/PII in any Copilot workspace or Copilot interactions</li>
+        <li>Always use your VA.gov email for GitHub account creation</li>
+        <li>Securely save all passwords and credentials (no PIV login for GitHub)</li>
+      </ul>
+    </div>
+</section>
+
+<!-- PHASE 1 -->
+<section id="phase1-account">
+    <h1>Phase 1: GitHub Account & Enterprise Access (Required)</h1>
+    <h3>Step 1: Create a New GitHub Account</h3>
+    <ol>
+        <li><b>Go to:</b> <a href="https://github.com/signup" target="_blank">github.com/signup</a> (Do <b>not</b> use a personal GitHub account)</li>
+        <li>
+            <b>Fill in details:</b>
+            <ul>
+                <li><b>Email:</b> Use your <span class="highlight">VA.gov address ONLY</span></li>
+                <li><b>Password:</b> Minimum 15 characters, or 8+ with number and lowercase letter</li>
+                <li><b>Username:</b> Professional, alphanumeric/hyphens only (no hyphens at start/end; visible to VA users)</li>
+            </ul>
+        </li>
+        <li><b>Verify your account:</b> Complete email and any other verification steps</li>
+          <ul>
+            <li>If your username is taken, try adding your VA ID or department</li>
+            <li>Use a password manager—GitHub's requirements are strict</li>
+            <li>Email verification may take a few minutes</li>
+          </ul>
+    </ol><br>
+    <div class="optional">
+        <b>Why This Matters:</b>
+        <ul>
+            <li>GitHub Enterprise requires VA.gov email for license assignment</li>
+            <li>Your username is visible to VA collaborators</li>
+            <li>Secure credential storage is essential (no PIV login)</li>
+        </ul>
+    </div>
+</section>
+
+<section id="phase1-access">
+    <h3>Step 2: Request VA Enterprise Access</h3>
+    <ol>
+        <li>Go to: <a href="https://vaww.oit.va.gov/services/github/#signup" target="_blank">https://vaww.oit.va.gov/services/github/#signup</a> (internal VA site)</li>
+        <li>In "Individual Access" section, fill the form:
+            <ul>
+                <li>First and last name</li>
+                <li>VA.gov email address</li>
+                <li>GitHub username you just created</li>
+            </ul>
+        </li>
+        <li>Submit and wait for confirmation email (usually 24-36 hours)</li>
+    </ol>
+    <div class="highlight">
+        <b>What This Does:</b>
+        Adds you to the <a href="https://github.com/department-of-veterans-affairs" target="_blank">'department-of-veterans-affairs'</a> official GitHub organization, unlocks Copilot enterprise license, enables compliance and collaboration.
+    </div>
+    <br>
+    <div class="important">
+        <b>Do not proceed to Step 3 until you receive approval!</b><br>
+    </div>
+</section>
+<section id="phase1-confirm">
+    <h3>Step 3: Verify Enterprise Access</h3>
+    <ol>
+        <li><b>Wait for approval</b> from Step 2</li>
+        <li>Go to <a href="https://github.com/settings/copilot/features" target="_blank">github.com/settings/copilot/features</a></li>
+        <li>Look for message: <i>You are assigned a seat as part of a GitHub Copilot Enterprise subscription managed by department-of-veterans-affairs</i></li>
+        <li>Test Copilot web interface: <a href="https://github.com/copilot" target="_blank">github.com/copilot</a></li>
+    </ol>
+    <div class="optional">
+        <b>Success Indicators:</b>
+        <ul>
+            <li>Copilot Enterprise subscription is active</li>
+            <li>Access to the Copilot web interface</li>
+            <b>Note:</b> The Copilot web version is limited. For full Agent Mode (file/system access, automations), continue to Phase 2.
+        </ul>
+    </div>
+    <br>
+    <div class="important">
+        <b>If Copilot access not available after 48 hours:</b>
+        <ul>
+            <li>Make sure you’re logged in with your VA GitHub account (not personal)</li>
+            <li>Clear browser cache and retry if needed</li>
+            <li>Post a help discussion message on <a href="https://github.com/department-of-veterans-affairs/github-user-requests/issues/new/choose">GitHub's VA board</a></li>
+            <li>Email <a href="mailto:DevOpsTeam@va.gov">DevOpsTeam@va.gov</a></li>                                   
+        </ul>
+    </div>
+</section>
+
+<!-- PHASE 2 -->
+<section id="phase2-environment">
+    <h1>Phase 2: Development Environment Setup</h1>
+    <ul>
+        <li>
+            <b>Why do this optional (but recommended) step?</b>  VS Code + Copilot Agent unlocks advanced features:
+            <ul>
+                <li>Direct file and folder manipulation</li>
+                <li>Multi-step automations</li>
+                <li>Workspace awareness, context, and persistent settings</li>
+                <li>Preconfigurable prompt files and instructionals</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section id="phase2-vscode">
+    <h3>Step 4: Install Visual Studio Code</h3>
+    <ol>
+        <li>Download from <a href="https://code.visualstudio.com/download" target="_blank">code.visualstudio.com/download</a>
+            <ul>
+                <li>Choose "Windows User Installer" (64-bit x64 is standard for VA)</li>
+            </ul>
+        </li>
+        <li>Run installer (no OIT/Administrator permissions needed)</li>
+        <li>
+            <b>When prompted for options:</b>
+            <ul>
+                <li>Accept Microsoft License</li>
+                <li>Check "Add to PATH"</li>
+                <li>Check "Create desktop icon"</li>
+                <li>Check both "Open with Code" context menu options</li>
+            </ul>
+        </li>
+        <li>Open VS Code after install (don’t install extensions yet!)</li>
+    </ol>
+    <div class="optional">
+        <b>VS Code Benefits:</b> Free, open source, robust extension marketplace, designed for Copilot, used by millions of professionals (and non-coders too!).
+    </div>
+    <div class="highlight">System Requirements: Windows 10 or higher, 1.6 GHz CPU, 200 MB disk space, & 1 GB RAM (recommened 8+ GB).</div>
+</section>
+<section id="phase2-workspace">
+    <h3>Step 5: Create Workspace Directory</h3>
+    <ol>
+        <li>Open VS Code, go to <b>FILE → OPEN FOLDER</b></li>
+        <li>Choose storage location:
+            <ul>
+                <li>OneDrive (recommended): <code>C:\Users\%USERNAME%\OneDrive\GitHub_Workspace\</code></li>
+                <li>Local: <code>C:\Users\%USERNAME%\Desktop\GitHub_Workspace\</code></li>
+                <li>Network: <code>S:\YourTeam\GitHub_Workspace\</code></li>
+            </ul>
+        </li>
+        <li>Right-click, create new folder: <b>GitHub_Workspace</b>, select it and click OK</li>
+    </ol>
+    <div class="optional">
+        <b>Why this structure?</b>
+        <ul>
+            <li>Centralizes all Copilot-related work</li>
+            <li>Enables Copilot to understand your project context</li>
+            <li>Automatic backup (if on OneDrive)</li>
+        </ul>
+    </div>
+    <br>
+    <div class="important">
+        <b>Security:</b> Do <b>not</b> store PHI/PII or sensitive data here. Choose locations that are regularly backed up.
+    </div>
+</section>
+<section id="phase2-folders">
+    <h3>Step 6: Add Work Folders</h3>
+    <ol>
+        <li>In VS Code: <b>FILE → ADD FOLDER TO WORKSPACE</b></li>
+        <li>Add folders you use often:
+            <ul>
+                <li>Desktop</li>
+                <li>Documents</li>
+                <li>Personal/Team/Project drives</li>
+            </ul>
+        </li>
+        <li>Add each folder individually; they will appear in the Explorer panel</li>
+    </ol>
+    <div class="highlight">
+        <b>What This Does:</b> Gives Copilot context for your work, allows quick navigation, enables better automation and suggestions.
+        <b>Best Practices:</b> Review folders regularly, remove those not needed, and use separate workspaces for different project types.
+    </div>
+    <div class="important">
+        <b>Never add folders containing PHI, PII, classified, or sensitive documents.</b><br>
+    </div>
+</section>
+<section id="phase2-save">
+    <h3>Step 7: Save Workspace Configuration</h3>
+    <ol>
+        <li>Go to <b>FILE → SAVE WORKSPACE AS</b></li>
+        <li>Save as <code>GitHub_Workspace.code-workspace</code> in your <b>GitHub_Workspace</b> folder</li>
+        <li>Check that the file was created (a few KB, JSON config)</li>
+    </ol>
+    <div class="optional">
+        <b>What gets saved?</b> Folder shortcuts, VS Code settings, extension configs, window layouts, recent files, and more.<br>
+        This allows you to share, reuse, and quickly re-open your entire work setup.
+    </div>
+</section>
+<section id="phase2-shortcut">
+    <h3>Step 8: Create Desktop Shortcut</h3>
+    <ol>
+        <li>Open File Explorer to <b>GitHub_Workspace</b></li>
+        <li>Right-click <code>GitHub_Workspace.code-workspace</code> → <b>Send to &gt; Desktop (Create Shortcut)</b></li>
+        <li>
+            (Optional) Rename the shortcut (e.g., "GitHub Copilot Workspace") and change icon if desired (right-click → Properties)
+        </li>
+        <li>
+            <b>Daily workflow:</b> <span class="highlight">Always use this shortcut</span> to open VS Code with your workspace context.
+        </li>
+    </ol>
+    <div class="important">
+        If shortcut doesn't work, verify the file exists and VS Code is installed. Try "Run as administrator" if needed.
+    </div>
+</section>
+
+
+<section id="phase2-extensions" class="tightlist">
+    <h3>Step 9: Install Essential Extensions</h3>
+    <ul>
+        <li>
+            <b>Open Extensions Panel:</b> <kbd>Ctrl+Shift+X</kbd> in VS Code.
+        </li>
+        <li>
+            <b>Required:</b>
+            <ul>
+                <li>
+                    <b>
+                        <a href="https://marketplace.visualstudio.com/items?itemName=GitHub.copilot" target="_blank">
+                            GitHub Copilot
+                        </a>
+                    </b>
+                    (<code>github.copilot</code>) – AI assistant
+                </li>
+                <li>
+                    <b>
+                        <a href="https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat" target="_blank">
+                            GitHub Copilot Chat
+                        </a>
+                    </b>
+                    (<code>github.copilot-chat</code>) – Conversational AI interface (required for Agent mode)
+                </li>
+            </ul>
+        </li>
+        <li>
+            <b>Highly Recommended:</b>
+            <ul>
+                <li>
+                    <b>
+                        <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.copilot-mermaid-diagram" target="_blank">
+                            Copilot Mermaid Diagrams
+                        </a>
+                    </b>
+                    (<code>ms-vscode.copilot-mermaid-diagram</code>) – Flowcharts/diagrams
+                </li>
+                <li>
+                    <b>
+                        <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-websearchforcopilot" target="_blank">
+                            Web Search for Copilot
+                        </a>
+                    </b>
+                    (<code>ms-vscode.vscode-websearchforcopilot</code>) – Real-time web search
+                </li>
+                <li>
+                    <b>
+                        <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-copilot-vision" target="_blank">
+                            Vision for Copilot Preview
+                        </a>
+                    </b>
+                    (<code>ms-vscode.vscode-copilot-vision</code>) – Image analysis
+                </li>
+                <li>
+                    <b>
+                        <a href="https://marketplace.visualstudio.com/items?itemName=vscode-icons-team.vscode-icons" target="_blank">
+                            VS Code Icons
+                        </a>
+                    </b>
+                    (<code>vscode-icons-team.vscode-icons</code>) – Improved file navigation
+                </li>
+                <li>
+                    <b>
+                        <a href="https://marketplace.visualstudio.com/items?itemName=tomoki1207.pdf" target="_blank">
+                            PDF Viewer
+                        </a>
+                    </b>
+                    (<code>tomoki1207.pdf</code>) – View PDFs in VS Code
+                </li>
+                <li>
+                    <b>
+                        <a href="https://marketplace.visualstudio.com/items?itemName=grapecity.gc-excelviewer" target="_blank">
+                            Excel Viewer
+                        </a>
+                    </b>
+                    (<code>grapecity.gc-excelviewer</code>) – View/edit CSV files
+                </li>
+            </ul>
+        </li>
+        <li>
+            <b>Language-Specific (as needed):</b> SQL, PowerShell, Python, Markdown, JSON, PowerBI, etc.
+        </li>
+    </ul>
+    <div class="highlight">
+        <b>Extension Tips:</b> Only install from verified publishers (with blue checkmarks next to their name), review permissions, update regularly, and remove unused extensions.
+    </div>
+</section>
+
+
+<section id="phase3-config">
+    <h1>Phase 3: Copilot Configuration & Optimization</h1>
+    <ul>
+        <li>
+            <b>Purpose:</b> Personalize Copilot to your workflow, preferences, and VA context.
+        </li>
+        <li>
+            <b>Key Benefits:</b> Smarter automations, better document formatting, persistent settings, and time savings every day.
+        </li>
+    </ul>
+</section>
+
+<section id="phase3-chat">
+    <h3>Step 10: Initial Copilot Setup</h3>
+    <ol>
+        <li>Open Copilot Chat with <kbd>Ctrl+Alt+I</kbd> (sign in if prompted)</li>
+        <li>
+            <b>Copilot Modes:</b>
+            <ul>
+                <li><b>ASK Mode:</b> Simple Q&A, limited file access, good for "how do I..." questions</li>
+                <li><b>AGENT Mode:</b> Full workspace/file access, can automate tasks, create/edit files, run multi-step processes</li>
+            </ul>
+        </li>
+        <li>
+            <b>Choose LLM Model:</b> Click the "model selector" in chat to access different AI LLM's optimized for specific kinds of tasks:
+            <div class="highlight" style="margin-top: 0.8em;">
+                <b>Available LLM Models with your new VA GitHub License vs Civilian Editions:</b>
+                <table style="width: 100%; margin-top: 0.5em; border-collapse: collapse; font-size: 0.70em;">
+                    <thead>
+                        <tr style="background-color: #003366; color: white;">
+                            <th style="padding: 0.4em; text-align: left; border: 1px solid #ddd;">Model</th>
+                            <th style="padding: 0.4em; text-align: left; border: 1px solid #ddd;">Provider</th>
+                            <th style="padding: 0.4em; text-align: left; border: 1px solid #ddd;">VA Access</th>
+                            <th style="padding: 0.4em; text-align: left; border: 1px solid #ddd;">Key Strengths</th>
+                            <th style="padding: 0.4em; text-align: left; border: 1px solid #ddd;">Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- VA Enterprise Models -->
+                        <tr style="background-color: #e8f5e8;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">GPT-4.1</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">OpenAI</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">✅ Enterprise</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Enhanced reasoning, coding, complex tasks</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Detailed analysis, multi-step automations</td>
+                        </tr>
+                        <tr style="background-color: #e8f5e8;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Claude Sonnet 4</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Anthropic</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">✅ Enterprise</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Document analysis, ethical reasoning</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Clinical content, compliance tasks</td>
+                        </tr>
+                        <tr style="background-color: #e8f5e8;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">GPT 5</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">OpenAI</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">✅ Enterprise</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Next-gen reasoning, multimodal excellence</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Advanced research, complex problem solving</td>
+                        </tr>
+                        <tr style="background-color: #e8f5e8;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">o4-mini</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">OpenAI</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">✅ Enterprise</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Efficient reasoning, rapid responses</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Quick tasks, maintaining accuracy</td>
+                        </tr>
+                        <tr style="background-color: #e8f5e8;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Claude Opus 4</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Anthropic</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">✅ Enterprise</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Complex reasoning, long-form content</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Comprehensive reports, documentation</td>
+                        </tr>
+                        <tr style="background-color: #e8f5e8;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Claude Sonnet 3.7 Thinking</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Anthropic</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">✅ Enterprise</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Shows thought process, advanced reasoning</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Troubleshooting, step-by-step solutions</td>
+                        </tr>
+                        <tr style="background-color: #e8f5e8;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Gemini 2.0 Flash</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Google</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">✅ Enterprise</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Fastest speed, multimodal capabilities</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Quick analysis, image/document processing</td>
+                        </tr>
+                        <!-- Civilian Models -->
+                        <tr style="background-color: #fff3cd;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Perplexity Sonar Large</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Perplexity</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">❌ Civilian Only</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Real-time web search, current information</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Research with live data, fact-checking</td>
+                        </tr>
+                        <tr style="background-color: #fff3cd;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">ChatGPT (Civilian)</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">OpenAI</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">❌ Civilian Only</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">General conversation, basic tasks</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Personal use, no enterprise features</td>
+                        </tr>
+                        <tr style="background-color: #fff3cd;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Llama 3.1</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Meta/Facebook</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">❌ Civilian Only</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Open source, customizable</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Custom implementations, research</td>
+                        </tr>
+                        <tr style="background-color: #fff3cd;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Grok-3</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">X (Twitter)</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">❌ Civilian Only</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Real-time X/Twitter integration</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Social media analysis, current events</td>
+                        </tr>
+                        <tr style="background-color: #fff3cd;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Amazon Nova</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Amazon</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">❌ Civilian Only</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">AWS integration, cloud services</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Cloud automation, AWS workflows</td>
+                        </tr>
+                        <tr style="background-color: #fff3cd;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Microsoft Phi-3</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Microsoft</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">❌ Civilian Only</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Lightweight, efficient processing</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Edge computing, mobile devices</td>
+                        </tr>
+                        <tr style="background-color: #fff3cd;">
+                            <td style="padding: 0.3em; border: 1px solid #ddd; font-weight: bold;">Alibaba Qwen 3</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Alibaba</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">❌ Civilian Only</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">Multilingual capabilities, Chinese focus</td>
+                            <td style="padding: 0.3em; border: 1px solid #ddd;">International content, language translation</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="optional" style="margin-top: 0.8em;">
+                <b>Quick Selection Guide:</b> When using GitHub Copilot in "Agent Mode", you should use "GPT-4.1" for coding, use "Claude Sonnet 4" for writing & speech, use "Claude Opus 4" for advanced reasoning, logic, and analysis/reports, use "o4-mini" for speed. When using GitHub Copilot in "Ask Mode", you can take advantage of the premium flagship LLM's like "GPT-5" and "Claude Opus 4.1" for the most compelex and demanding tasks. Just be aware of the premium token costs that are taken out of your monthly allowance for premium model usage.
+            </div><br>
+        </li>
+        <li>
+            <b>Test it out:</b> Try "What can you help me with?" or "What files do you see in my workspace?". gent Mode's advanced capabilities: Create/edit files, analyze documents, automate reports, generate code/scripts, integrate with other tools, remember your preferences, and more!
+        </li>
+    </ol>
+</section>
+
+<section id="phase3-settings">
+    <h3>Step 11: Configure Personal Settings</h3>
+    <ol>
+        <li>Copy and paste the prompt from the next slide into Copilot Chat.</li>
+        <li>Answer Copilot's follow-up questions (work type, file types, daily tasks, etc.)</li>
+        <li>Review proposed changes to your settings/configuration; approve or modify as needed.</li>
+        <li>Ask Copilot for clarification on any settings you don't understand.</li>
+    </ol>
+    <div class="optional">
+        <b>Why do this?</b> Optimizes Copilot for your workflow (editor preferences, file associations, task automations, etc.).
+    </div>
+</section>
+
+<section id="phase3-settings-prompt" class="splitprompt">
+    <button class="copy-btn" onclick="copyCode('prompt1')">Copy</button>
+    <pre id="prompt1"><code>I want you to configure my VS Code settings, workspace settings, systems, and yourself to help me permanently improve my projects and make my work the most efficient. 
+Look at my active workspace files, folders, and content to get an idea of the kind of work I do. 
+Ask me questions that I can answer which will guide you to make recommended changes to any settings, connections, defaults, or preferences that will improve the quality of my work going forward. 
+Put special focus and emphasis on questions related to the type of projects I work on and subjects contained. 
+Collect all these questions and answers, then modify my VS Code global settings.json file to permanently save all these approved changes. 
+Do not actually save any changes or modifications without explicitly asking me first.</code></pre>
+</section>
+
+<section id="phase3-instructions" class="splitsteps">
+    <h3>Step 12: Generate Custom Copilot Instructions</h3>
+    <ol>
+        <li>
+            In Copilot Chat, <b>click the GEAR icon</b>
+            <img src="https://raw.githubusercontent.com/microsoft/vscode-icons/master/icons/settings.svg"
+            alt="VS Code Gear Icon" style="height:1em;vertical-align:middle;">
+        </li>
+        <li>Select <strong>GENERATE INSTRUCTIONS</strong></li>
+        <li>This creates a <code>copilot-instructions.md</code> file in your workspace</li>
+        <li>Copy and paste the advanced prompt from the next slide for deeper personalization</li>
+    </ol>
+    <div class="optional">
+        <b>What does this do?</b> Customizes Copilot’s behavior to your role, preferred style, and VA context.
+    </div>
+</section>
+
+<section id="phase3-instructions-prompt" class="splitprompt">
+    <button class="copy-btn" onclick="copyCode('prompt2')">Copy</button>
+    <pre id="prompt2"><code>I want you to perform a full active workspace analysis and evaluate the type of projects that I routinely work on. 
+Use any context and analysis information to modify my copilot-instructions.md or copilot prompt files, and add as many descriptive, recommended, helpful, and impactful updates or changes to those files that will help me perform my work more efficiently. 
+Then, I want you to generate a series of 25 questions that you will ask me one-by-one in an interactive question & answer session, with each answer I give you helping you expand and improve all the context and references in these instructional or prompt files all with the goal of increasing my productivity and expanding my ability to take advantage of using Copilot Agent going forward.</code></pre>
+</section>
+
+<section id="phase3-personalize">
+    <h3>Step 13: Personalize Your Copilot</h3>
+    <ol>
+        <li>
+            <b>Provide personal context:</b><br>
+            <code>My name is [Your Name]
+My job title is [Your Title]
+I work at [Your VA Facility/Department]
+My primary responsibilities include: [List 3-5 responsibilities]</code>
+        </li>
+        <li>
+            <b>Set VA branding preferences:</b><br>
+            <code>Please #fetch the official VA.gov styles, colors, fonts, and visual themes. Use these parameters when generating any future content, documents, presentations, or web pages. Always apply VA branding consistently to maintain professional appearance.</code>
+        </li>
+        <li>
+            <b>Define your automation needs:</b> Discuss your daily, weekly, or monthly repetitive tasks, data sources, forms/templates, and communication patterns.
+        </li>
+        <li>
+            <b>Establish security protocols:</b><br>
+            <code>Always remind me about PHI/PII compliance when working with any healthcare or personal data. Never suggest including sensitive information in any outputs. Alert me if any requested task might involve compliance concerns.</code>
+        </li>
+        <li>
+            <b>Create task templates:</b> Ask Copilot to create reusable templates (emails, reports, agendas, documentation, etc.).
+        </li>
+    </ol>
+    <div class="optional">
+        <b>Benefits:</b> Consistent output, VA branding, role-aware suggestions, rapid completion of routine tasks, continuous learning.
+    </div>
+</section>
+
+<!-- PHASE 4 -->
+<section id="phase4-overview">
+    <h1>Phase 4: Practical Applications for VA Healthcare Work</h1>
+    <ul>
+        <li>These real-world examples show how Copilot Agent Mode transforms daily operations at Edward Hines Jr. VA Hospital.</li>
+        <li>Each task here is achievable with the guidance in this setup guide.</li>
+    </ul>
+</section>
+<section id="phase4-clinical">
+    <h3>Clinical Documentation & Patient Care</h3>
+    <b>Automated Clinical Protocol Updates (Example Prompt):</b>
+    <pre><code>Our cardiology department needs updated heart failure guidelines. Please:
+1. #fetch the latest AHA/ACC heart failure guidelines from official sources
+2. #fetch the current VA/DoD clinical practice guidelines for heart failure
+3. Compare the two documents and identify key differences
+4. Create a summary document highlighting what's changed since our last update
+5. Generate a staff memo explaining the updates with implementation timeline
+6. Create a quick reference card for nurses with the new protocols
+7. Update our existing heart failure patient education handout
+8. Save all documents with proper VA formatting and today's date
+9. Create a tracking spreadsheet for staff training completion</code></pre>
+    <div class="optional">Agent mode automates all steps, applies VA compliance, and organizes results.</div>
+</section>
+<section id="phase4-patiented">
+    <h3>Patient Education Material Generation</h3>
+    <b>Diabetes Clinic Example Prompt:</b>
+    <pre><code>Create comprehensive patient education materials for our newly diagnosed Type 2 diabetes patients:
+
+1. Generate a welcome packet including:
+   - Simple explanation of diabetes (6th grade reading level)
+   - Hines VA diabetes clinic contact information and hours
+   - Local pharmacy locations that accept VA prescriptions
+   - Community resources for diabetic supplies
+
+2. Create interactive tools:
+   - Blood sugar tracking spreadsheet with color coding
+   - Medication schedule template
+   - Grocery shopping guide for diabetic-friendly foods
+   - Exercise plan template for veterans with mobility limitations
+
+3. Generate digital versions:
+   - Email-friendly format for MyHealtheVet messaging
+   - Large print versions
+   - Spanish language translations
+   - Audio script for vision-impaired patients
+
+4. Create staff resources:
+   - Teaching checklist for nurses
+   - Common patient questions with evidence-based answers
+   - Referral criteria for diabetes educator consultations</code></pre>
+    <div class="optional">Copilot can generate all formats, ensure medical accuracy, and use Hines-specific details.</div>
+</section>
+<section id="phase4-qi">
+    <h3>Clinical Quality Improvement Projects</h3>
+    <b>Infection Control Example:</b>
+    <pre><code>Help me complete our quarterly infection control report for the medical ward:
+
+1. Analyze the infection data spreadsheet I'll upload:
+   - Calculate infection rates by unit and month
+   - Identify trends and outliers
+   - Compare to national benchmarks
+
+2. Create visualizations:
+   - Infection rate trends over 12 months
+   - Heat map showing which units need attention
+   - Before/after charts for interventions
+
+3. Generate the quarterly report:
+   - Executive summary for leadership
+   - Detailed analysis for infection control committee
+   - Action plan with recommendations
+   - Staff presentation slides
+
+4. Create follow-up tools:
+   - Monitoring checklist for nursing staff
+   - Audit forms for compliance verification
+   - Training materials for new interventions
+
+Apply all VA infection control guidelines and ensure HIPAA compliance throughout.</code></pre>
+</section>
+<section id="phase4-admin">
+    <h3>Administrative Automation</h3>
+    <b>Meeting Minutes and Task Tracking Example:</b>
+    <pre><code>After uploading our staff meeting audio file, please:
+1. Transcribe the full audio to text
+2. Summarize key discussion points and decisions
+3. Extract all assigned action items and responsible staff
+4. Generate a follow-up email draft for attendees
+5. Create a task tracking spreadsheet with due dates
+6. Apply VA branding and confidentiality notices to all documents</code></pre>
+    <div class="optional">Automate repetitive admin tasks, improve follow-up, and ensure nothing falls through the cracks.</div>
+</section>
+<section id="phase4-research">
+    <h3>Research & Data Analysis</h3>
+    <b>Clinical Research Abstract Example:</b>
+    <pre><code>I need a draft abstract for our recent heart failure outcomes study:
+1. Analyze the Excel data I upload (demographics, interventions, outcomes)
+2. Summarize key findings and statistical results
+3. Create an abstract in AMA format (250 words max)
+4. List 3-5 references in AMA style, pulled from PubMed or VA Library
+5. Generate a PowerPoint with 3 summary slides for leadership</code></pre>
+    <div class="optional">Copilot helps with data analysis, scientific writing, and presentation creation—all with VA compliance and formatting.</div>
+</section>
+<section id="phase4-training">
+    <h3>Training & Professional Development</h3>
+    <b>Orientation Checklist Example:</b>
+    <pre><code>Create a new staff orientation checklist for the medical ward:
+1. List required training modules and deadlines
+2. Add links to VA Talent Management System (TMS) and required policies
+3. Include space for supervisor sign-off and completion dates
+4. Format as a fillable PDF and a printable checklist
+5. Generate reminder emails for incomplete items</code></pre>
+    <div class="optional">Automate onboarding, ensure compliance, and track completion with minimal effort.</div>
+</section>
+<section id="phase4-emergency">
+    <h3>Emergency Preparedness & Crisis Management</h3>
+    <b>Disaster Drill Example:</b>
+    <pre><code>Help me run a code blue disaster drill:
+1. Generate a scenario script for the drill
+2. Create a step-by-step facilitator guide
+3. Produce participant evaluation forms
+4. Analyze completed forms for improvement areas
+5. Summarize results for the Quality Improvement committee</code></pre>
+    <div class="optional">Copilot can streamline simulations, capture feedback, and auto-generate improvement actions.</div>
+</section>
+<section id="phase4-bottomline">
+    <h3>The Bottom Line: Why Agent Mode Changes Everything</h3>
+    <ul>
+        <li>Agent mode bridges knowledge, automation, and compliance for VA teams.</li>
+        <li>It saves time, reduces burnout, and enables everyone to work at the top of their license.</li>
+        <li>With the right setup and prompts, Copilot becomes an always-on, VA-customized digital assistant.</li>
+    </ul>
+</section>
+
+<!-- PROMPT TEMPLATES -->
+<section id="prompt-admin">
+    <h2>Prompt Templates – Administrative Automation</h2>
+    <ul>
+        <li>
+            <b>Task/Project Tracker:</b><br>
+            <code>Create a project tracker spreadsheet for all ongoing QI projects in our department. Include columns for project name, leader, start/end dates, current status, and key milestones.</code>
+        </li>
+        <li>
+            <b>VA-Formatted Email:</b><br>
+            <code>Draft a VA-branded email to staff about updated infection control protocols. Include summary of changes, required actions, and links to resources. Apply official VA signature block.</code>
+        </li>
+        <li>
+            <b>Staff Scheduling:</b><br>
+            <code>Generate a monthly staff schedule for our nursing unit, ensuring proper coverage for all shifts, compliance with union rules, and minimizing overtime. Output as Excel and PDF.</code>
+        </li>
+    </ul>
+</section>
+<section id="prompt-data">
+    <h2>Prompt Templates – Data Analysis</h2>
+    <ul>
+        <li>
+            <b>Data Clean-Up:</b><br>
+            <code>Analyze the attached spreadsheet for missing values, duplicates, and outliers. Generate a cleaned version and a summary report of corrections.</code>
+        </li>
+        <li>
+            <b>VA Performance Dashboard:</b><br>
+            <code>Create an interactive dashboard using PowerBI to visualize patient satisfaction scores by unit and quarter for the past year, highlighting any trends or areas needing attention.</code>
+        </li>
+    </ul>
+</section>
+<section id="prompt-docs">
+    <h2>Prompt Templates – Documentation & Communication</h2>
+    <ul>
+        <li>
+            <b>Clinical Note Draft:</b><br>
+            <code>Generate a first-draft progress note for a patient with CHF, using the following structured template: HPI, Physical Exam, Assessment, Plan. Format for CPRS import.</code>
+        </li>
+        <li>
+            <b>Committee Minutes:</b><br>
+            <code>Summarize the attached meeting transcript into formal minutes, including attendees, decisions, action items, and deadlines. Use VA template style.</code>
+        </li>
+    </ul>
+</section>
+<section id="prompt-creative">
+    <h2>Prompt Templates – Creative & Educational</h2>
+    <ul>
+        <li>
+            <b>Patient Handout:</b><br>
+            <code>Create a handout for veterans on managing hypertension. Use clear, plain language, VA logos, and cite only official VA or CDC references.</code>
+        </li>
+        <li>
+            <b>Staff Training Quiz:</b><br>
+            <code>Write a 10-question multiple-choice quiz on new VA privacy policies. Include answer key and explanations, and format for online learning modules.</code>
+        </li>
+    </ul>
+</section>
+<section id="prompt-imports">
+    <h2>Importable Copilot Template Files (Ready to Use)</h2>
+    <ul>
+        <li>
+            <a href="./copilot-instructions/copilot-instructions.md" target="_blank"><b>copilot-instructions.md</b></a> &ndash;<br>
+            <i>Template for workspace/project-specific Copilot instructions. Sets standards, folder structure, automation, and best practices for VA Power Platform projects. Use to bootstrap or customize Copilot for a new VA project workspace.</i>
+        </li>
+        <li>
+            <a href="./copilot-instructions/COPILOT_BRIEFING.md" target="_blank"><b>COPILOT_BRIEFING.md</b></a> &ndash;<br>
+            <i>Rich context file for Copilot sessions. Includes developer profile, VA compliance rules, template organization, workflow requirements, and briefing prompts. Use to ensure Copilot understands your org, automation style, and security needs.</i>
+        </li>
+        <li>
+            <a href="./copilot-instructions/tasks.json" target="_blank"><b>tasks.json</b></a> &ndash;<br>
+            <i>VS Code Tasks configuration file. Enables one-click execution of productivity reports, workspace cleanup, PowerApp actions, SQL exports, file organization, syntax checks, and version tracking. Import into <code>.vscode/tasks.json</code> to standardize automation for all users.</i>
+        </li>
+        <li>
+            <a href="./copilot-instructions/Add-LicenseHeaders.ps1" target="_blank"><b>Add-LicenseHeaders.ps1</b></a> &ndash;<br>
+            <i>Automatically inserts VA-compliant license headers in PowerShell, SQL, JS, CSS, and HTML files. Supports dry-run mode, skips files with existing headers, and maintains logs. Ensures attribution and compliance in all source files.</i>
+        </li>
+        <li>
+            <a href="./copilot-instructions/Clean-Workspace.ps1" target="_blank"><b>Clean-Workspace.ps1</b></a> &ndash;<br>
+            <i>Safely removes temp, log, and archive files; old backups; and workspace clutter. Supports quick, standard, deep, and archive cleanup levels, plus dry-run and interactive modes. Maintains a secure and neat workspace.</i>
+        </li>
+        <li>
+            <a href="./copilot-instructions/Generate-ProductivityReport.ps1" target="_blank"><b>Generate-ProductivityReport.ps1</b></a> &ndash;<br>
+            <i>Generates detailed productivity reports from workspace and Git activity, including VA-specific work effort estimates. Supports custom date ranges and multiple output formats. Ready for supervisor or compliance reporting.</i>
+        </li>
+        <li>
+            <a href="./copilot-instructions/Validate-Syntax.ps1" target="_blank"><b>Validate-Syntax.ps1</b></a> &ndash;<br>
+            <i>Checks configuration files (YAML, JSON, XML, MSAPP) for syntax errors. Can auto-fix simple mistakes and logs all results. Use before deploying configs or committing changes.</i>
+        </li>
+        <li>
+            <a href="./copilot-instructions/Validate-WorkspaceSetup.ps1" target="_blank"><b>Validate-WorkspaceSetup.ps1</b></a> &ndash;<br>
+            <i>Validates full workspace setup (folders, files, VS Code config, Git, Power Platform CLI). Optionally auto-fixes missing directories and checks PowerShell script syntax. Outputs a report for onboarding and compliance.</i>
+        </li>
+    </ul>
+    <p class="optional" style="margin-top:1em;">
+    <b>How to use:</b> Open the <code>./copilot-instructions/prompts/</code> or <code>./copilot-instructions/</code> folder in VS Code, then copy or run the desired template in your own workspace. Each file contains usage notes or documentation.
+    </p>
+    <p class="highlight">
+        <b>Tip:</b> These templates are designed for a Power Platform developer in Clinical Informatics at Hines VA, but are very easilyadaptable for any VA project. You can even tell your new Copilot Agent to update these templates to for you, to customize your needs.
+    </p>
+</section>
+
+
+
+<!-- TROUBLESHOOTING & SUPPORT -->
+<section id="troubleshooting">
+    <h2>Troubleshooting: Common Issues and Solutions</h2>
+    <ul>
+        <li><b>Copilot Not Responding:</b> Check internet, GitHub login in VS Code, restart VS Code, clear cache (Ctrl+Shift+P → "Developer: Clear Cache and Reload")</li>
+        <li><b>No Enterprise Features:</b> Confirm VA org membership, wait full 36 hours, contact <a href="mailto:DevOpsTeam@va.gov">DevOpsTeam@va.gov</a></li>
+        <li><b>Extensions Not Working:</b> Restart VS Code, check compatibility, disable conflicts, reinstall as needed</li>
+        <li><b>Workspace Not Loading:</b> Check file location, permissions, recreate workspace if needed, verify referenced folders exist</li>
+        <li><b>Performance Issues:</b> Close unused folders, limit file monitoring in large dirs, increase memory allocation, check for resource-intensive extensions</li>
+    </ul>
+    <div class="optional">
+        <b>Getting Help:</b> VA internal: <a href="mailto:DevOpsTeam@va.gov">DevOpsTeam@va.gov</a>, <a href="https://yourit.va.gov/" target="_blank">yourIT Service Portal</a>, 855-673-4357.
+        <br>VS Code Official Documentation: <a href="https://code.visualstudio.com/docs" target="_blank">code.visualstudio.com/docs</a>
+    </div>
+</section>
+<section id="support" class="tightlist">
+    <h2>Support & Reference Resources</h2>
+    <ul>
+        <li><b>VA GitHub Org:</b> <a href="https://github.com/department-of-veterans-affairs" target="_blank">github.com/department-of-veterans-affairs</a></li>
+        <li><b>VA GitHub Handbook:</b> <a href="https://department-of-veterans-affairs.github.io/github-handbook/" target="_blank">department-of-veterans-affairs.github-handbook/</a></li>
+        <li><b>OIT Services:</b> <a href="https://vaww.oit.va.gov/services/" target="_blank">vaww.oit.va.gov/services/</a></li>
+        <li><b>GitHub Skills:</b> <a href="https://skills.github.com/" target="_blank">skills.github.com</a></li>
+        <li><b>VS Code Tips:</b> <a href="https://code.visualstudio.com/docs/getstarted/tips-and-tricks" target="_blank">VS Code Tips and Tricks</a></li>
+        <li><b>Copilot Documentation:</b> <a href="https://docs.github.com/copilot" target="_blank">docs.github.com/copilot</a></li>
+        <li><b>General IT Support:</b> 855-673-4357</li>
+        <li><b>Emergency IT Issues:</b> <a href="https://yourit.va.gov/" target="_blank">yourit.va.gov</a></li>
+    </ul>
+</section>
+
+<section id="last-updated">
+    <div class="optional">
+        <p><b>Next Steps:</b> Now that you have completed these setup steps, start with simple tasks and gradually work up to more complex automations. Make your new Copilot Agent teach you how to do things you are unfamiliar with or want to learn. Copilot learns from your usage—so the more you use it, the better it gets for your workflow! You will be ready to take some of the official <a href="https://learn.microsoft.com/en-us/credentials/browse/">Microsoft Certification</a> tests before you know it!</p>
+    </div>
+    <div style="margin-top:0.8em; font-size:0.75em; color:#444;">
+        Last Updated: August 12, 2025  |  Version: 6.3<br>
+    </div>
+    <div class="important">
+        <b>Security Reminder:</b> Never include PHI/PII in Copilot files or chats. Copilot can only access files you have given it permission to see. If unsure, ask your supervisor or ISSO.
+    </div>
+    <div style="margin-top:2.2em; font-size:0.95em; color:#444;">
+        <b>Guide Author/Developer Contact Information:</b><br>
+        <span style="display:block; font-size:0.85em; margin-top:1em;"><b>Kyle J. Coder</b></span>
+        <ul style="margin-left:0.8em;">
+            <li>Program Analyst (Advanced Analytics Team)</li>
+            <li>Advanced Analytics & Automations Team</li>                        
+            <li>Health Informatics / Clinical Informatics Service</li>                                    
+            <li>Edward Hines Jr. VA Hospital (v12/578)</li>                                                
+            <li>Email/Teams: <a href="mailto:kyle.coder@va.gov">Kyle.Coder@va.gov</a></li>
+            <li>GitHub: <a href="https://github.com/KCoderVA/" target="_blank">https://github.com/KCoderVA/</a></li>
+            <li>SharePoint: <a href="https://dvagov.sharepoint.com/sites/vhahin/svc/ci" target="_blank">VA Hines Clinical Informatics SharePoint</a></li>
+        </ul>
+        <br>
+        <span style="font-size:0.60em;">
+            View this guide's full Apache 2.0 Software License 
+            <a href="./dependencies/LICENSE.txt" target="_blank">by clicking this link</a>, and summarized below:
+            <pre style="font-size:0.95em; background:#222; color:#f8f8f2; border-radius:0.4em; padding:1em; overflow-x:auto;">
+Copyright 2025 Kyle J. Coder
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+            </pre>
+        </span>
+    </div>
+</section>
+
+
+</div>
+</div>
+<!-- Custom Navigation Bar -->
+<a href="./GitHub_Copilot_Setup_Guide_PRINTABLE.html" class="print-link" title="Printable PDF-Friendly Version">Printable Version</a>
+<div id="custom-nav-bar" aria-label="Slide navigation" tabindex="0" role="navigation">
+    <button id="nav-back" aria-label="Back"><span class="nav-icon">&#8592;</span>Back</button>
+    <button id="nav-toc" aria-label="Table of Contents"><span class="nav-icon">&#9776;</span>Table of Contents</button>
+    <button id="nav-next" aria-label="Next">Next<span class="nav-icon">&#8594;</span></button>
+</div>
+<noscript><div style="margin:2em; padding:1em; border:2px solid #c00;">JavaScript is disabled. Use the Printable Version link above for a static copy of this guide.</div></noscript>
+<script src="./dependencies/reveal.js-5.2.1/dist/reveal.js" defer></script>
+<script src="./dependencies/reveal.js-5.2.1/plugin/notes/notes.js" defer></script>
+<script src="./dependencies/reveal.js-5.2.1/plugin/markdown/markdown.js" defer></script>
+<script src="./dependencies/reveal.js-5.2.1/plugin/highlight/highlight.js" defer></script>
+<script>
+Reveal.initialize({
+    hash: true,
+    controls: false,
+    controlsTutorial: false,
+    progress: true,
+    history: true,
+    keyboard: true,
+    touch: true,
+    transition: 'slide',
+    transitionSpeed: 'default',
+    backgroundTransition: 'fade',
+    hideAddressBar: true,
+    overview: false,
+    center: true,
+    loop: false,
+    fragments: true,
+    autoSlide: 0,
+    plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+});
+document.addEventListener("DOMContentLoaded", function() {
+    const navBack = document.getElementById("nav-back");
+    const navNext = document.getElementById("nav-next");
+    const navToc = document.getElementById("nav-toc");
+    navBack.addEventListener("click", function() {
+        Reveal.prev();
+    });
+    navNext.addEventListener("click", function() {
+        Reveal.next();
+    });
+        navToc.addEventListener("click", function() { Reveal.slide(1); });
+    document.getElementById("custom-nav-bar").addEventListener("keydown", function(e) {
+        if (e.key === "ArrowRight") { Reveal.next(); }
+        if (e.key === "ArrowLeft") { Reveal.prev(); }
+        if (e.key === "Home" || e.key === "t" || e.key === "T") { Reveal.slide(1); }
+    });
+        // Secure external links
+        document.querySelectorAll('a[target="_blank"]').forEach(a => a.setAttribute('rel','noopener noreferrer'));
+});
+// Copy-to-clipboard for code blocks
+function copyCode(id) {
+  var code = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(code);
+    const btn = document.querySelector('#'+id).parentElement.querySelector('.copy-btn');
+    if(btn){ const original = btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=original,1500); }
+}
+</script>
+</body>
+</html>

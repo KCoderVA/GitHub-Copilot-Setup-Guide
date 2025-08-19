@@ -1,0 +1,42 @@
+# Node/build caches (precautionary)
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/tasks.json
+*.code-workspace
+
+# Archives / temp
+*.zip
+*.7z
+*.bak
+*.tmp
+~$*
+archive/
+
+# Generated PDFs (keep authoritative one if needed)
+*.pdf
+!GitHub Copilot Setup Guide (for VA Employees).pdf
+
+# Local environment or secret files
+.env
+.env.*
+secrets*
+
+# PowerShell transient
+*.ps1.xml
+
+# Coverage / test artifacts (future-proofing)
+coverage/
+
+# Macros / binary office caches
+~$*.docx
+~$*.xlsx

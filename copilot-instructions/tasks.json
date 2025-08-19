@@ -1,0 +1,308 @@
+/*
+Copyright 2025 Kyle J. Coder
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Generate-ProductivityReport.ps1
+// VA Power Platform Productivity Reporting Script
+// Author: Kyle J. Coder - Edward Hines Jr. VA Hospital
+// Purpose: Generates comprehensive productivity reports from workspace activity with enhanced Git statistics
+
+
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Generate Productivity Report",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Generate-ProductivityReport.ps1"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Creates supervisor-ready productivity and progress reports"
+        },
+        {
+            "label": "Update Version & Commit",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Update-VersionAndCommit.ps1",
+                "-CommitMessage",
+                "${input:commitMessage}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Automatically updates version number and commits changes with proper VA formatting"
+        },
+        {
+            "label": "Clean Workspace (Archive TEMP_ files)",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Clean-Workspace.ps1"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Intelligently moves temporary and duplicate files to archive folder"
+        },
+        {
+            "label": "Unpack PowerApp (.msapp)",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Unpack-PowerApp.ps1",
+                "-AppPath",
+                "${input:msappFile}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Unpacks a .msapp file into individual component files for Git version control"
+        },
+        {
+            "label": "Pack PowerApp (Create .msapp)",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Pack-PowerApp.ps1",
+                "-AppName",
+                "${input:appName}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Packs unpacked PowerApp components back into .msapp file for deployment"
+        },
+        {
+            "label": "Export SQL Results to CSV",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Export-SQLQuery.ps1",
+                "-QueryFile",
+                "${input:sqlFile}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Executes SQL query and exports results to CSV for testing"
+        },
+        {
+            "label": "Add License Headers",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Add-LicenseHeaders.ps1"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Automatically adds VA-compliant license headers to source code files"
+        },
+        {
+            "label": "Organize Files",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Organize-Files.ps1"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Organizes workspace files into appropriate subfolders based on type and content"
+        },
+        {
+            "label": "Validate Syntax",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Validate-Syntax.ps1"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Validates syntax for YAML, JSON, XML, and MSAPP configuration files"
+        },
+        {
+            "label": "Validate Workspace Setup",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Validate-WorkspaceSetup.ps1"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Validates workspace structure, dependencies, and configuration for VA compliance"
+        },
+        {
+            "label": "Track File Versions - List",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Track-FileVersions.ps1",
+                "-Action",
+                "List"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Shows version tracking status for all tracked files"
+        },
+        {
+            "label": "Track File Versions - Backup Current File",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/scripts/Track-FileVersions.ps1",
+                "-Action",
+                "Track",
+                "-FilePath",
+                "${file}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Creates a backup version of the currently open file"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "msappFile",
+            "description": "Select .msapp file to unpack",
+            "type": "pickString",
+            "options": []
+        },
+        {
+            "id": "appName",
+            "description": "Enter PowerApp name",
+            "type": "promptString"
+        },
+        {
+            "id": "commitMessage",
+            "description": "Enter commit message",
+            "type": "promptString"
+        },
+        {
+            "id": "sqlFile",
+            "description": "Select SQL file to execute",
+            "type": "pickString",
+            "options": []
+        }
+    ]
+}
