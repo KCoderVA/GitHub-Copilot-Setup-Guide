@@ -20,16 +20,17 @@ Thumbs.db
 *.bak
 *.tmp
 ~$*
-archive/
+docs/archive/
 
-# Generated PDFs (keep authoritative one if needed)
+# Generated PDFs (keep only the canonical one in docs/)
 *.pdf
-!GitHub Copilot Setup Guide (for VA Employees).pdf
+!docs/GitHub Copilot Setup Guide (for VA Employees).pdf
 
 # Local environment or secret files
 .env
 .env.*
 secrets*
+.url
 
 # PowerShell transient
 *.ps1.xml

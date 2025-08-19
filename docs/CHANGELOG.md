@@ -34,7 +34,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.0.
   - `Validate-WorkspaceSetup.ps1`
   - `tasks.json` (VS Code task automation)
 - Prompt and role context files in `prompts/` (accessibility, security, analytics, enterprise dev, power platform, primary care nurse, etc.).
-- Documentation set: `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `DISCLAIMER.md`.
+- Documentation set (in `docs/`): `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `DISCLAIMER.md`.
 - Root `LICENSE` (Apache 2.0) plus bundled `dependencies/LICENSE.txt` (upstream license text).
 - `.gitignore` with sensible defaults and exclusion of `archive/` directory.
 - Copy-to-clipboard buttons with user feedback for embedded prompts.

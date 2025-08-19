@@ -18,26 +18,27 @@ limitations under the License.
 
 Interactive Reveal.js slide deck and printable guide to help VA employees (clinical, administrative, analytics, informatics) get started with GitHub Copilot Enterprise and Agent Mode.
 
-## Project Contents
+## Project Contents (clean root)
 
 - `index.html` – Interactive slide deck (optimized for web & accessibility)
-- `GitHub Copilot Setup Guide (for VA Employees).pdf` – Canonical printable version
-- `GitHub Copilot Setup Guide (for VA Employees).pdf` – Distributed PDF version
+- `docs/` – Documentation and artifacts:
+	- `GitHub Copilot Setup Guide (for VA Employees).pdf` – Canonical printable version
+	- `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `DISCLAIMER.md`, `RELEASE_NOTES.md`
+	- `archive/` – Prior HTML iterations / legacy files
 - `copilot-instructions/` – PowerShell automation scripts, tasks, and Copilot instruction templates
 - `prompts/` – Role and domain-specific prompt template collections (clinical, analytics, security, etc.)
 - `dependencies/` – Bundled Reveal.js assets and Apache 2.0 license
-- `archive/` – Prior HTML iterations / legacy versions
 
 ## Quick Start (GitHub Pages Hosting)
 
 1. Fork or clone this repository.
 2. Enable GitHub Pages in repository settings: Source = `main` (root).
 3. Visit: `https://<your-username>.github.io/GitHub-Copilot-Setup-Guide/`.
-4. Open `index.html` for the interactive version. For printing/distribution, use the PDF `GitHub Copilot Setup Guide (for VA Employees).pdf`.
+4. Open `index.html` for the interactive version. For printing/distribution, use the PDF at `docs/GitHub Copilot Setup Guide (for VA Employees).pdf`.
 
 ## Printable Version
 
-Use the "Printable Version" button in the top-right of `index.html` to open the PDF (`GitHub Copilot Setup Guide (for VA Employees).pdf`).
+Use the "Printable Version" button in the top-right of `index.html` to open the PDF (`docs/GitHub Copilot Setup Guide (for VA Employees).pdf`).
 
 ## PowerShell Automation Scripts
 Located in `copilot-instructions/`:

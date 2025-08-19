@@ -1,30 +1,4 @@
 <!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
-<!-- SEO & Social Meta -->
-<meta name="description" content="GitHub Copilot Enterprise setup guide for VA employees: account, environment, personalization, prompts, and healthcare use cases." />
-<meta name="author" content="Kyle J. Coder" />
-<meta name="robots" content="index,follow" />
-<link rel="canonical" href="https://kcoderva.github.io/GitHub-Copilot-Setup-Guide/" />
-<meta property="og:title" content="GitHub Copilot Enterprise Setup Guide (VA)" />
-<meta property="og:description" content="Practical VA-focused setup & usage guide for GitHub Copilot Enterprise." />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://kcoderva.github.io/GitHub-Copilot-Setup-Guide/" />
-<meta property="og:image" content="https://avatars.githubusercontent.com/u/9919?s=200&v=4" />
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="GitHub Copilot Enterprise Setup Guide (VA)" />
-<meta name="twitter:description" content="Practical VA-focused setup & usage guide for GitHub Copilot Enterprise." />
-
-<title>GitHub Copilot Enterprise Setup Guide for VA Employees</title>
-<link rel="shortcut icon" href="./favicon.ico" />
-<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/reset.css" />
-<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/reveal.css" />
-<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/theme/white.css" id="theme" />
-<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/plugin/highlight/monokai.css" />
-
 <!--
 Copyright 2025 Kyle J. Coder
 
@@ -40,13 +14,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-<!--
-Generate-ProductivityReport.ps1
-VA Power Platform Productivity Reporting Script
-Author: Kyle J. Coder - Edward Hines Jr. VA Hospital
-Purpose: Generates comprehensive productivity reports from workspace activity with enhanced Git statistics
--->
+<title>GitHub Copilot Enterprise Setup Guide for VA Employees</title>
+<link rel="shortcut icon" href="./favicon.ico" />
+<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/reset.css" />
+<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/reveal.css" />
+<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/dist/theme/white.css" id="theme" />
+<link rel="stylesheet" href="./dependencies/reveal.js-5.2.1/plugin/highlight/monokai.css" />
 
 
 <style>
@@ -78,80 +56,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
   font-size: 0.9em;
 }
 .reveal .slides section:not(#title):not(#toc) h1 {
-  font-size: 1.08em !important;
-}
-.reveal .slides section:not(#title):not(#toc) h2 {
-  font-size: 0.945em !important;
-}
-.reveal .slides section:not(#title):not(#toc) h3 {
-  font-size: 0.846em !important;
-}
-.reveal .slides section:not(#title):not(#toc) ul,
-.reveal .slides section:not(#title):not(#toc) ol,
-.reveal .slides section:not(#title):not(#toc) p {
-  font-size: 0.765em !important;
-}
-.reveal .slides section:not(#title):not(#toc) table {
-  font-size: 0.738em !important;
-}
-.reveal .slides section:not(#title):not(#toc) pre,
-.reveal .slides section:not(#title):not(#toc) code,
-.reveal .slides section:not(#title):not(#toc) pre code {
-  font-size: 0.684em !important;
-}
-.reveal .splitsteps { font-size: 0.765em !important; }
-.reveal .splitprompt { font-size: 0.684em !important; }
-.reveal .tightlist ul, .reveal .tightlist ol { font-size: 0.7em !important; line-height: 1.22em; margin-bottom:0.08em;}
-#toc .toc-container { font-size: 0.8em !important; margin-top: 0.5em;}
-#toc .toc-columns ul {
-    columns: 2;
-    -webkit-columns: 2;
-    column-gap: 2.2em;
-    margin: 0;
-    padding: 0;
-}
-@media (max-width: 800px) {
-    #toc .toc-columns ul { columns: 1; }
-}
-.reveal pre, .reveal code, .reveal pre code {
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
-    background: #f6f8fa;
-    border-radius: 0.45em;
-    padding: 0.8em 0.9em 0.8em 0.9em;
-    margin-top: 1.2em;
-    margin-bottom: 0.5em;
-    position: relative;
-}
-.copy-btn {
-    position: absolute;
-    top: 0.3em;
-    right: 0.6em;
-    background: #eee;
-    border-radius: 0.4em;
-    border: 1px solid #ccc;
-    font-size: 0.8em;
-    padding: 0.12em 0.5em;
-    cursor: pointer;
-    z-index: 2;
-    color: #003366;
-    transition: background 0.14s;
-}
-
-pre, pre code, code, .splitprompt pre, .splitprompt code {
-    background: #222 !important;
-    color: #f8f8f2 !important;
-    font-family: 'Fira Mono', 'Consolas', 'Menlo', 'Monaco', 'Liberation Mono', monospace;
-    font-size: 1em;
-    line-height: 1.45;
-    border-radius: 8px;
-    padding: 0.8em 0.8em 0.8em 2em;
-    margin: 0.8em 0.25em 0.8em 0.25em;
-    overflow-x: auto;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04);
-    border: 1px solid #181818;
-    word-break: break-word;
-    white-space: pre;
+    font-size: 1.08em !important;
 }
 
 /* For inline code */
@@ -235,16 +140,374 @@ code:not(pre code) {
     vertical-align: middle;
     margin-right: 0.17em;
 }
-/* Accessibility utilities */
-button:focus, a:focus { outline: 3px solid #0056b3; outline-offset:2px; }
-.skip-link { position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden; }
-.skip-link:focus { position: static !important; width:auto !important; height:auto !important; padding:0.5em 1em; background:#003366; color:#fff; z-index:2000; }
-.print-link { position:fixed; top:8px; right:12px; z-index:1500; font-size:0.65em; background:#003366; color:#fff; padding:0.5em 0.9em; border-radius:1em; text-decoration:none; }
-.print-link:hover, .print-link:focus { background:#0056b3; }
+</style>
+<!-- Printable layout overrides: one slide per landscape page -->
+<style>
+/* ================= PRINT / LINEAR MODE OVERRIDES =================
+     Goal: Preserve all slide content while rendering sequential pages
+     sized for 8.5x11 (landscape) printing – one slide per page.        */
+
+/* Force landscape page setup & comfortable margins */
+@page { size: 11in 8.5in landscape; margin: 0.55in 0.65in 0.65in 0.65in; }
+
+/* Activate linear flow immediately for this PRINTABLE variant */
+html.print-linear, body.print-linear { height: auto !important; overflow: visible !important; }
+
+body.print-linear .reveal { height: auto !important; overflow: visible !important; }
+body.print-linear .reveal .slides { position: static !important; width: 100% !important; height: auto !important; transform: none !important; padding: 0 !important; margin: 0 !important; }
+body.print-linear .reveal .slides section { max-height: none !important; overflow: visible !important; }
+
+/* Each top-level section (slide) becomes a print page */
+body.print-linear .reveal .slides > section { position: static !important; display: block !important; width: 100% !important; height: auto !important; margin: 0 0 0.6in 0 !important; left: auto !important; top: auto !important; box-shadow: none !important; background: #fff !important; border: 1px solid #e1e4e8; border-radius: 6px; padding: 0.55in 0.6in 0.55in 0.7in !important; box-sizing: border-box; }
+/* Start each new slide on a fresh page, but allow multi-page content within a slide */
+body.print-linear .reveal .slides > section:not(:first-of-type) { page-break-before: always; }
+
+/* Last slide should not force an extra blank page */
+body.print-linear .reveal .slides > section:last-of-type { page-break-after: auto; margin-bottom: 0 !important; }
+
+/* Headings sizing tweaks for paper */
+body.print-linear .reveal h1 { font-size: 1.55em !important; margin-top: 0; }
+body.print-linear .reveal h2 { font-size: 1.35em !important; margin-top: 0; }
+body.print-linear .reveal h3 { font-size: 1.12em !important; }
+
+/* Avoid content splitting awkwardly */
+body.print-linear pre,
+/* Allow large tables to split across pages instead of overflowing underneath later slides */
+/* (Avoid page-break-inside: avoid on tables so they don't overlay subsequent pages) */
+body.print-linear blockquote,
+body.print-linear ul,
+body.print-linear ol { page-break-inside: avoid; }
+
+/* Standard tables can still avoid breaking if small enough; oversize detection handled via JS scaling */
+
+/* Enhance optional & highlight blocks visibility in print */
+body.print-linear .optional { background: #f1f9f1 !important; border: 1px solid #b6ddc0 !important; color:#222 !important; padding:0.55em 0.7em !important; page-break-inside: avoid; }
+body.print-linear .highlight { background:#fff8e1 !important; border-left:4px solid #ffc107 !important; color:#222 !important; }
+body.print-linear .highlight ul { margin:0.4em 0 0.2em 1.1em !important; padding:0 !important; list-style:disc !important; }
+body.print-linear .highlight ul li { display:list-item !important; list-style:disc !important; }
+body.print-linear .highlight { overflow:visible !important; }
+
+/* Fragments (incremental bullets) should all be visible in print */
+body.print-linear .fragment { opacity:1 !important; visibility:visible !important; transform:none !important; }
+
+/* Constrain wide tables / code; allow wrapping */
+body.print-linear table { width: 100% !important; word-break: break-word; }
+body.print-linear pre { max-width: 100%; white-space: pre-wrap !important; word-break: break-word !important; }
+body.print-linear table { position: relative !important; transform: none !important; }
+
+/* Reduce excessive padding/margins for code & inline code to prevent overlap */
+body.print-linear pre, body.print-linear pre code { padding:0.55em 0.75em 0.55em 0.75em !important; margin:0.6em 0 0.6em 0 !important; font-size:0.9em !important; }
+body.print-linear code:not(pre code) { padding:0.15em 0.35em !important; font-size:0.9em !important; }
+body.print-linear .copy-btn { display:none !important; }
+body.print-linear pre { position:relative !important; }
+
+/* Link formatting: show destination next to text for clarity in print */
+body.print-linear a { font-weight:600; text-decoration:underline; color:#003366; }
+body.print-linear a[data-print-url]::after { content: " (" attr(data-print-url) ")"; font-weight:400; font-size:0.78em; text-decoration:none; color:#222; }
+/* Internal slide links (#/ or #id) should not get URL duplication */
+body.print-linear a[data-internal-link]::after { content: ""; }
+
+/* Remove Reveal-specific navigation/progress for print view */
+body.print-linear .reveal .progress,
+body.print-linear .reveal .controls,
+body.print-linear #custom-nav-bar { display: none !important; }
+
+/* Background neutrality for printing */
+@media print {
+    body.print-linear { background: #fff !important; }
+    body.print-linear .reveal { background: #fff !important; }
+    body.print-linear .reveal .slides > section { box-shadow: none !important; border: none !important; }
+    /* Remove banner button when printing */
+    #print-mode-banner { display: none !important; }
+}
+
+/* On-screen helper banner */
+#print-mode-banner { position: fixed; top: 8px; right: 8px; background: #003366; color: #fff; padding: 0.55em 0.9em; border-radius: 6px; font-size: 0.72em; z-index: 2000; box-shadow: 0 2px 8px rgba(0,0,0,.18); display: flex; align-items: center; gap: .5em; }
+#print-mode-banner button { background: #ffc107; color: #222; border: none; cursor: pointer; padding: 0.25em 0.6em; border-radius: 4px; font-weight: 600; font-size: 0.95em; }
+#print-mode-banner button:hover { background: #ffcd38; }
+body:not(.print-linear) #print-mode-banner [data-hide-when='screen-linear'] { display:none; }
+
+/* If someone removes JS, ensure linear fallback still largely works */
+noscript .reveal .slides { transform: none !important; }
+/* Large LLM models table special print handling */
+body.print-linear #llm-models-table { font-size:0.60em !important; line-height:1.15 !important; border-collapse:collapse !important; page-break-before:always; page-break-after:always; }
+body.print-linear #llm-models-table th, body.print-linear #llm-models-table td { padding:0.25em 0.35em !important; }
+body.print-linear #llm-models-table thead th { position:sticky; top:0; background:#003366 !important; color:#fff !important; }
+body.print-linear #llm-models-table tr:nth-child(even) { background:#f4f8fb !important; }
+
+/* JS Pagination generated pages */
+body.print-linear.paginated .reveal { display:none !important; }
+body.print-linear #paginated-print { display:block; }
+/* Each artificial page */
+body.print-linear .print-page { page-break-after:always; position:relative; width:100%; min-height:calc(8.5in - 1.2in); /* subtract header/footer space */ padding:1.0in 0.7in 0.8in 0.8in; box-sizing:border-box; border:1px solid #ddd; border-radius:6px; background:#fff; margin:0 0 0.4in 0; overflow:hidden; }
+/* Landscape class reserved for future orientation-specific tweaks */
+body.print-linear .print-page .page-header { position:absolute; left:0.8in; right:0.8in; top:0.35in; font-size:0.62em; display:flex; justify-content:space-between; font-weight:600; color:#444; }
+body.print-linear .print-page .page-footer { position:absolute; left:0.8in; right:0.8in; bottom:0.35in; font-size:0.6em; display:flex; justify-content:space-between; color:#555; }
+body.print-linear .print-page .page-body { font-size:0.9em; }
+body.print-linear .print-page .page-body table { font-size:0.70em; }
+body.print-linear .print-page .page-body pre { font-size:0.78em !important; }
+/* Code prompt blocks narrower & wrapped */
+body.print-linear .print-page pre, body.print-linear .print-page pre code { white-space: pre-wrap !important; word-break: break-word !important; overflow: visible !important; max-width:100% !important; padding:0.5em 0.6em 0.5em 0.6em !important; }
+body.print-linear .print-page #prompt1, body.print-linear .print-page #prompt2 { font-size:0.70em !important; line-height:1.25 !important; }
+/* Slightly shrink prompt-imports slide to fit single page */
+body.print-linear .print-page[data-old-id="prompt-imports"] { font-size:0.82em; }
+/* Printed TOC styles */
+body.print-linear #print-toc { font-size:0.78em; margin-top:0.6em; }
+body.print-linear #print-toc .toc-group-title { font-weight:700; margin-top:0.9em; }
+body.print-linear #print-toc .toc-line { display:flex; align-items:flex-end; white-space:nowrap; }
+body.print-linear #print-toc .toc-line .toc-label { max-width:72%; white-space:normal; }
+body.print-linear #print-toc .toc-line .dots { flex:1; border-bottom:1px dotted #999; margin:0 0.35em 0.25em 0.35em; }
+body.print-linear #print-toc .toc-line .page { min-width:2.2em; text-align:right; font-variant-numeric:tabular-nums; }
+body.print-linear #print-toc .level-1 { margin-left:1.2em; }
+body.print-linear #print-toc .level-0 { margin-left:0; }
+body.print-linear #print-toc .toc-line .step { font-weight:600; }
+@media print { body.print-linear #print-toc a { text-decoration:none; color:#000; } }
+body.print-linear .print-page h1, body.print-linear .print-page h2 { margin-top:0; }
+body.print-linear .print-page[data-split-index] h1.split-injected, body.print-linear .print-page[data-split-index] h2.split-injected { font-size:1em; margin-bottom:0.4em; }
+body.print-linear .page-footer .slide-ref { font-weight:600; }
+body.print-linear .page-footer .page-num { font-weight:600; }
+body.print-linear #paginated-print { counter-reset: printPage; }
+body.print-linear .print-page { counter-increment: printPage; }
+body.print-linear .print-page .page-footer .page-num::after { content: counter(printPage); }
+/* Visual separation when a slide spans multiple pages */
+body.print-linear .print-page[data-split-index]:not([data-split-index="0"]) { border-top:4px double #003366; }
 </style>
 </head>
 <body>
-<a href="#title" class="skip-link">Skip to main content</a>
+<div id="print-mode-banner" role="note" aria-label="Printable layout active">
+    <span>Printable layout (1 slide = 1 page, Landscape). Press Ctrl+P to print.</span>
+    <button type="button" id="toggleInteractive">Interactive View</button>
+    <button type="button" id="forcePrint" data-hide-when="screen-linear">Print</button>
+</div>
+<script>
+// Activate print-linear mode immediately
+document.documentElement.classList.add('print-linear');
+document.body.classList.add('print-linear');
+
+// Provide ability to toggle back to interactive Reveal layout if desired
+const toggleBtn = document.getElementById('toggleInteractive');
+const printBtn = document.getElementById('forcePrint');
+let interactive = false;
+toggleBtn?.addEventListener('click', () => {
+    interactive = !interactive;
+    if (interactive) {
+        document.documentElement.classList.remove('print-linear');
+        document.body.classList.remove('print-linear');
+        toggleBtn.textContent = 'Printable View';
+    } else {
+        document.documentElement.classList.add('print-linear');
+        document.body.classList.add('print-linear');
+        toggleBtn.textContent = 'Interactive View';
+    }
+});
+printBtn?.addEventListener('click', () => { window.print(); });
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ---------- Add link data-print-url attributes (exclude internal anchors) ----------
+    document.querySelectorAll('a[href]').forEach(a => {
+        const href = a.getAttribute('href');
+        if (!href) return;
+        if (href.startsWith('#') || href.startsWith('#/')) { a.setAttribute('data-internal-link',''); return; }
+        try {
+            const u = new URL(href, window.location.href);
+            if (/^[a-zA-Z]:\\/.test(href)) {
+                a.setAttribute('data-print-url', 'file:///' + href.replace(/\\/g,'/'));
+            } else {
+                a.setAttribute('data-print-url', u.href);
+            }
+        } catch { /* ignore */ }
+    });
+
+        // Removed auto-scaling to prevent print layering issues; allow natural flow & page breaks.
+            // ---------- Pagination: Generate multi-page output with headers & footers ----------
+            (function paginate(){
+                if (!document.body.classList.contains('print-linear')) return;
+                const slidesRoot = document.querySelector('.reveal .slides');
+                if (!slidesRoot) return;
+                const slides = Array.from(slidesRoot.children).filter(el=>el.tagName==='SECTION');
+                const container = document.createElement('div');
+                container.id = 'paginated-print';
+                document.body.appendChild(container);
+                document.body.classList.add('paginated');
+
+                const pageInnerHeight = (8.5 * 96) - (1.2 * 96); // rough usable height subtract header/footer
+                const projectTitle = 'GitHub Copilot Setup Guide';
+
+                slides.forEach(slide => {
+                    // Clone slide content to avoid modifying original
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = slide.innerHTML; // shallow clone of content
+                    const working = document.createElement('div');
+                    working.className = 'temp-slide-working';
+                    working.style.position='absolute';
+                    working.style.left='-9999px';
+                    working.style.top='0';
+                    working.style.width='8.5in';
+                    document.body.appendChild(working);
+                    working.appendChild(wrapper);
+
+                    // Determine slide title / phase context
+                    let slideTitle = '';
+                    const h1 = wrapper.querySelector('h1');
+                    const h2 = wrapper.querySelector('h2');
+                    const h3 = wrapper.querySelector('h3');
+                    slideTitle = (h1?.textContent || h2?.textContent || h3?.textContent || slide.id || '').trim();
+                    const phaseContext = (slideTitle.match(/Phase\s+\d+[^:]*:.*$/i) ? slideTitle : (slidesRoot.querySelector('section[id^="phase"] h1')?.textContent || ''));
+
+                    // Split content nodes sequentially across pages
+                    const nodes = Array.from(wrapper.childNodes);
+                    let pageIndex=0; let currentPageBody; let currentPage;
+                    function newPage(){
+                        currentPage = document.createElement('div');
+                        currentPage.className='print-page landscape';
+                        currentPage.setAttribute('data-slide', slide.id||'');
+                        currentPage.setAttribute('data-split-index', pageIndex.toString());
+                        const header = document.createElement('div'); header.className='page-header';
+                        header.innerHTML = `<span class="project">${projectTitle}</span><span class="phase">${phaseContext || ''}</span>`;
+                        const footer = document.createElement('div'); footer.className='page-footer';
+                        footer.innerHTML = `<span class="slide-ref">${(slide.id?('#'+slide.id+' '):'')}${slideTitle}${pageIndex>0?' (cont.)':''}</span><span class="page-num"></span>`;
+                        currentPageBody = document.createElement('div'); currentPageBody.className='page-body';
+                        currentPage.appendChild(header); currentPage.appendChild(currentPageBody); currentPage.appendChild(footer);
+                        container.appendChild(currentPage); pageIndex++;
+                    }
+                    newPage();
+
+                    nodes.forEach(node => {
+                        if (node.nodeType===Node.ELEMENT_NODE){ node.classList?.remove('fragment'); }
+                        currentPageBody.appendChild(node);
+                        // Check overflow; if overflow, move last node to new page
+                        if (currentPageBody.scrollHeight > pageInnerHeight){
+                            const moved = currentPageBody.lastChild;
+                            if (moved){ currentPageBody.removeChild(moved); }
+                            newPage();
+                            currentPageBody.appendChild(moved);
+                        }
+                    });
+                    document.body.removeChild(working);
+                });
+                    // --- After pagination: sequential slide IDs & human-readable footer titles ---
+                    const chapterMap = [
+                        { match: /^title$/, chapter: 'Overview' },
+                        { match: /^toc$/, chapter: 'Table of Contents' },
+                        { match: /^overview$/, chapter: 'Overview' },
+                        { match: /^prerequisites$/, chapter: 'Prerequisites' },
+                        { match: /^phase1-/, chapter: 'Phase 1: GitHub Account & Enterprise Access' },
+                        { match: /^phase2-/, chapter: 'Phase 2: Development Environment Setup' },
+                        { match: /^phase3-/, chapter: 'Phase 3: Copilot Configuration & Optimization' },
+                        { match: /^phase4-/, chapter: 'Phase 4: Practical Applications' },
+                        { match: /^prompt-/, chapter: 'Prompt Templates' },
+                        { match: /^troubleshooting$/, chapter: 'Troubleshooting: Common Issues and Solutions' },
+                        { match: /^support$/, chapter: 'Support & Reference Resources' },
+                        { match: /^last-updated$/, chapter: 'Next Steps / Last Updated' }
+                    ];
+
+                    const pages = Array.from(container.querySelectorAll('.print-page'));
+                    pages.forEach((page, idx) => {
+                        const oldId = page.getAttribute('data-slide')||'';
+                        page.setAttribute('data-old-id', oldId);
+                        const newId = 'slide_' + (idx+1);
+                        page.id = newId;
+                        // Determine chapter
+                        let chapter = 'Guide';
+                        for (const rule of chapterMap){ if (rule.match.test ? rule.match.test(oldId) : rule.match instanceof RegExp ? rule.match.test(oldId) : false) { chapter = rule.chapter; break; } if (typeof rule.match === 'string' && rule.match === oldId) { chapter = rule.chapter; break; } if (rule.match instanceof RegExp === false && rule.match !== oldId && rule.match.toString().startsWith('/')===false) { /* continue */ } }
+                        // Fallback: pattern checks
+                        if (chapter === 'Guide') {
+                            const found = chapterMap.find(r => (r.match instanceof RegExp) && r.match.test(oldId));
+                            if (found) chapter = found.chapter;
+                        }
+                        // Apply chapter to header (right span)
+                        const header = page.querySelector('.page-header');
+                        if (header){ const spans = header.querySelectorAll('span'); if (spans[1]) spans[1].textContent = chapter; }
+                        // Human-friendly footer title
+                        const footer = page.querySelector('.page-footer .slide-ref');
+                        if (footer){
+                            // Extract first heading text present on this page body
+                            const body = page.querySelector('.page-body');
+                            let firstHeading = body?.querySelector('h1,h2,h3')?.textContent?.trim() || oldId;
+                            // For continuation pages, append (cont.) automatically
+                            if (page.getAttribute('data-split-index') !== '0') {
+                                firstHeading += ' (cont.)';
+                            }
+                            footer.textContent = firstHeading;
+                        }
+                    });
+                    // Update internal anchor links to new sequential ids if needed
+                    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+                        const targetOld = a.getAttribute('href').replace('#','');
+                        const page = pages.find(p=>p.getAttribute('data-old-id')===targetOld);
+                        if(page){ a.setAttribute('href', '#' + page.id); }
+                    });
+                        // --- Build printable TOC with page numbers ---
+                        const tocEl = document.getElementById('print-toc');
+                        if (tocEl) {
+                            const entries = [];
+                            function add(label, oldId, level){
+                                const page = pages.find(p=>p.getAttribute('data-old-id')===oldId);
+                                const pageNum = page ? Array.from(pages).indexOf(page)+1 : '';
+                                entries.push({label, oldId, level, pageNum});
+                            }
+                            add('Overview','overview',0);
+                            add('Prerequisites','prerequisites',0);
+                            add('Phase 1: GitHub Account & Enterprise Access','phase1-account',0);
+                            add('Step 1: Create a New GitHub Account','phase1-account',1);
+                            add('Step 2: Request VA Enterprise Access','phase1-access',1);
+                            add('Step 3: Verify Enterprise Access','phase1-confirm',1);
+                            add('Phase 2: Development Environment Setup','phase2-environment',0);
+                            add('Agent Mode Overview','phase2-environment',1);
+                            add('Step 4: Install Visual Studio Code','phase2-vscode',1);
+                            add('Step 5: Create Workspace Directory','phase2-workspace',1);
+                            add('Step 6: Add Work Folders','phase2-folders',1);
+                            add('Step 7: Save Workspace Configuration','phase2-save',1);
+                            add('Step 8: Create Desktop Shortcut','phase2-shortcut',1);
+                            add('Step 9: Install Essential Extensions','phase2-extensions',1);
+                            add('Phase 3: Copilot Configuration & Optimization','phase3-config',0);
+                            add('Initial Copilot Setup','phase3-chat',1);
+                            add('Step 11: Configure Personal Settings','phase3-settings',1);
+                            add('Settings Prompt Block','phase3-settings-prompt',1);
+                            add('Step 12: Generate Custom Instructions','phase3-instructions',1);
+                            add('Instructions Prompt Block','phase3-instructions-prompt',1);
+                            add('Step 13: Personalize Your Copilot','phase3-personalize',1);
+                            add('Phase 4: Practical Applications','phase4-overview',0);
+                            add('Clinical Documentation & Patient Care','phase4-clinical',1);
+                            add('Patient Education Material Generation','phase4-patiented',1);
+                            add('Clinical Quality Improvement Projects','phase4-qi',1);
+                            add('Administrative Automation','phase4-admin',1);
+                            add('Research & Data Analysis','phase4-research',1);
+                            add('Training & Professional Development','phase4-training',1);
+                            add('Emergency Preparedness & Crisis Management','phase4-emergency',1);
+                            add('The Bottom Line','phase4-bottomline',1);
+                            add('Prompt Templates','prompt-admin',0);
+                            add('Admin Automation Prompts','prompt-admin',1);
+                            add('Data Analysis Prompts','prompt-data',1);
+                            add('Documentation Prompts','prompt-docs',1);
+                            add('Creative & Educational Prompts','prompt-creative',1);
+                            add('Importable Copilot Template Files','prompt-imports',1);
+                            add('Troubleshooting: Common Issues and Solutions','troubleshooting',0);
+                            add('Support & Reference Resources','support',0);
+                            add('Next Steps / Last Updated','last-updated',0);
+                                                        // Build HTML so we can inject twice (fragment would be consumed once)
+                                                        let tocHTML = '';
+                                                        entries.forEach(e=>{
+                                                                const pageAnchor = pages.find(p=>p.getAttribute('data-old-id')===e.oldId);
+                                                                const href = pageAnchor ? ('#'+pageAnchor.id) : '#';
+                                                                const label = (e.level===1? 'Step ' : '') + e.label.replace(/^Step \d+:\s*/,'' );
+                                                                const stepCls = /^Step \d+/i.test(e.label) ? ' step' : '';
+                                                                tocHTML += `<div class="toc-line level-${e.level}"><a class="toc-label${stepCls}" href="${href}">${label}</a><span class="dots"></span><span class="page">${e.pageNum}</span></div>`;
+                                                        });
+                                                        tocEl.innerHTML = tocHTML;
+                                                        // Update paginated TOC page as well
+                                                        const tocPage = pages.find(p=>p.getAttribute('data-old-id')==='toc');
+                                                        if (tocPage) {
+                                                            const body = tocPage.querySelector('.page-body');
+                                                            if (body) {
+                                                                body.innerHTML = '<h1>Table of Contents</h1>' + '<div id="print-toc-clone">'+ tocHTML + '</div>';
+                                                            }
+                                                        }
+                        }
+            })();
+});
+
+</script>
 <div class="reveal">
 <div class="slides">
 
@@ -299,7 +562,7 @@ button:focus, a:focus { outline: 3px solid #0056b3; outline-offset:2px; }
                     <li><a href="#/phase3-instructions">12. Generate Custom Instructions</a></li>
                     <li><a href="#/phase3-instructions-prompt">12a. Instructions Prompt Block</a></li>
                     <li><a href="#/phase3-personalize">13. Personalize Your Copilot</a></li>
-                    <!-- Removed empty duplicate entry -->
+                    <li><a href="#/phase3-personalize"></a></li>                    
                 </ul>
             </li>
             <li><b>Phase 4: Practical Applications</b>
@@ -465,6 +728,7 @@ button:focus, a:focus { outline: 3px solid #0056b3; outline-offset:2px; }
         <ul>
             <li>Copilot Enterprise subscription is active</li>
             <li>Access to the Copilot web interface</li>
+            <b>Note:</b> While the Copilot web version is much more advanced than 'VA GPT' or civilian ChatGPT/LLM models, it is still somewhat limited in actionable capabilities. Kick it up a notch with full "Agent Mode", by continuing this guide into to Phase 2.                    <b>Note:</b> The Copilot web version is limited. For full Agent Mode (file/system access, automations), continue to Phase 2.
             <b>Note:</b> The Copilot web version is limited. For full Agent Mode (file/system access, automations), continue to Phase 2.
         </ul>
     </div>
@@ -1110,40 +1374,40 @@ Apply all VA infection control guidelines and ensure HIPAA compliance throughout
     <h2>Importable Copilot Template Files (Ready to Use)</h2>
     <ul>
         <li>
-            <a href="./copilot-instructions/copilot-instructions.md" target="_blank"><b>copilot-instructions.md</b></a> &ndash;<br>
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\copilot-instructions.md" target="_blank"><b>copilot-instructions.md</b></a> &ndash;<br>
             <i>Template for workspace/project-specific Copilot instructions. Sets standards, folder structure, automation, and best practices for VA Power Platform projects. Use to bootstrap or customize Copilot for a new VA project workspace.</i>
         </li>
         <li>
-            <a href="./copilot-instructions/COPILOT_BRIEFING.md" target="_blank"><b>COPILOT_BRIEFING.md</b></a> &ndash;<br>
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\COPILOT_BRIEFING.md" target="_blank"><b>COPILOT_BRIEFING.md</b></a> &ndash;<br>
             <i>Rich context file for Copilot sessions. Includes developer profile, VA compliance rules, template organization, workflow requirements, and briefing prompts. Use to ensure Copilot understands your org, automation style, and security needs.</i>
         </li>
         <li>
-            <a href="./copilot-instructions/tasks.json" target="_blank"><b>tasks.json</b></a> &ndash;<br>
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\tasks.json" target="_blank"><b>tasks.json</b></a> &ndash;<br>
             <i>VS Code Tasks configuration file. Enables one-click execution of productivity reports, workspace cleanup, PowerApp actions, SQL exports, file organization, syntax checks, and version tracking. Import into <code>.vscode/tasks.json</code> to standardize automation for all users.</i>
         </li>
         <li>
-            <a href="./copilot-instructions/Add-LicenseHeaders.ps1" target="_blank"><b>Add-LicenseHeaders.ps1</b></a> &ndash;<br>
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\Add-LicenseHeaders.ps1" target="_blank"><b>Add-LicenseHeaders.ps1</b></a> &ndash;<br>
             <i>Automatically inserts VA-compliant license headers in PowerShell, SQL, JS, CSS, and HTML files. Supports dry-run mode, skips files with existing headers, and maintains logs. Ensures attribution and compliance in all source files.</i>
         </li>
         <li>
-            <a href="./copilot-instructions/Clean-Workspace.ps1" target="_blank"><b>Clean-Workspace.ps1</b></a> &ndash;<br>
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\Clean-Workspace.ps1" target="_blank"><b>Clean-Workspace.ps1</b></a> &ndash;<br>
             <i>Safely removes temp, log, and archive files; old backups; and workspace clutter. Supports quick, standard, deep, and archive cleanup levels, plus dry-run and interactive modes. Maintains a secure and neat workspace.</i>
         </li>
         <li>
-            <a href="./copilot-instructions/Generate-ProductivityReport.ps1" target="_blank"><b>Generate-ProductivityReport.ps1</b></a> &ndash;<br>
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\Generate-ProductivityReport.ps1" target="_blank"><b>Generate-ProductivityReport.ps1</b></a> &ndash;<br>
             <i>Generates detailed productivity reports from workspace and Git activity, including VA-specific work effort estimates. Supports custom date ranges and multiple output formats. Ready for supervisor or compliance reporting.</i>
         </li>
         <li>
-            <a href="./copilot-instructions/Validate-Syntax.ps1" target="_blank"><b>Validate-Syntax.ps1</b></a> &ndash;<br>
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\Validate-Syntax.ps1" target="_blank"><b>Validate-Syntax.ps1</b></a> &ndash;<br>
             <i>Checks configuration files (YAML, JSON, XML, MSAPP) for syntax errors. Can auto-fix simple mistakes and logs all results. Use before deploying configs or committing changes.</i>
         </li>
         <li>
-            <a href="./copilot-instructions/Validate-WorkspaceSetup.ps1" target="_blank"><b>Validate-WorkspaceSetup.ps1</b></a> &ndash;<br>
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\Validate-WorkspaceSetup.ps1" target="_blank"><b>Validate-WorkspaceSetup.ps1</b></a> &ndash;<br>
             <i>Validates full workspace setup (folders, files, VS Code config, Git, Power Platform CLI). Optionally auto-fixes missing directories and checks PowerShell script syntax. Outputs a report for onboarding and compliance.</i>
         </li>
     </ul>
     <p class="optional" style="margin-top:1em;">
-    <b>How to use:</b> Open the <code>./copilot-instructions/prompts/</code> or <code>./copilot-instructions/</code> folder in VS Code, then copy or run the desired template in your own workspace. Each file contains usage notes or documentation.
+        <b>How to use:</b> Open <code>S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\prompts\</code> or <code>S:\Informatics\Data Team\GitHub Copilot Info\copilot-instructions\copilot-instructions\</code>in File Explorer or VS Code, then copy or run the desired template in your own workspace. Each file contains usage notes or documentation.
     </p>
     <p class="highlight">
         <b>Tip:</b> These templates are designed for a Power Platform developer in Clinical Informatics at Hines VA, but are very easilyadaptable for any VA project. You can even tell your new Copilot Agent to update these templates to for you, to customize your needs.
@@ -1206,7 +1470,7 @@ Apply all VA infection control guidelines and ensure HIPAA compliance throughout
         <br>
         <span style="font-size:0.60em;">
             View this guide's full Apache 2.0 Software License 
-            <a href="./dependencies/LICENSE.txt" target="_blank">by clicking this link</a>, and summarized below:
+            <a href="S:\Informatics\Data Team\GitHub Copilot Info\dependencies\LICENSE.txt" target="_blank">by clicking this link</a>, and summarized below:
             <pre style="font-size:0.95em; background:#222; color:#f8f8f2; border-radius:0.4em; padding:1em; overflow-x:auto;">
 Copyright 2025 Kyle J. Coder
 
@@ -1224,52 +1488,36 @@ Unless required by applicable law or agreed to in writing, software distributed 
 </div>
 </div>
 <!-- Custom Navigation Bar -->
-<a href="./docs/GitHub Copilot Setup Guide (for VA Employees).pdf" class="print-link" title="Printable PDF-Friendly Version">Printable Version</a>
-<div id="custom-nav-bar" aria-label="Slide navigation" tabindex="0" role="navigation">
+<div id="custom-nav-bar" aria-label="Slide navigation" tabindex="0">
     <button id="nav-back" aria-label="Back"><span class="nav-icon">&#8592;</span>Back</button>
     <button id="nav-toc" aria-label="Table of Contents"><span class="nav-icon">&#9776;</span>Table of Contents</button>
     <button id="nav-next" aria-label="Next">Next<span class="nav-icon">&#8594;</span></button>
 </div>
-<noscript><div style="margin:2em; padding:1em; border:2px solid #c00;">JavaScript is disabled. Use the Printable Version link above for a static copy of this guide.</div></noscript>
-<script src="./dependencies/reveal.js-5.2.1/dist/reveal.js" defer></script>
-<script src="./dependencies/reveal.js-5.2.1/plugin/notes/notes.js" defer></script>
-<script src="./dependencies/reveal.js-5.2.1/plugin/markdown/markdown.js" defer></script>
-<script src="./dependencies/reveal.js-5.2.1/plugin/highlight/highlight.js" defer></script>
+<script src="./dependencies/reveal.js-5.2.1/dist/reveal.js"></script>
+<script src="./dependencies/reveal.js-5.2.1/plugin/notes/notes.js"></script>
+<script src="./dependencies/reveal.js-5.2.1/plugin/markdown/markdown.js"></script>
+<script src="./dependencies/reveal.js-5.2.1/plugin/highlight/highlight.js"></script>
 <script>
-// Defer initialization until after deferred scripts load (prevents blank screen)
+Reveal.initialize({
+    hash: true,
+    controls: false,
+    controlsTutorial: false,
+    progress: true,
+    history: true,
+    keyboard: true,
+    touch: true,
+    transition: 'slide',
+    transitionSpeed: 'default',
+    backgroundTransition: 'fade',
+    hideAddressBar: true,
+    overview: false,
+    center: true,
+    loop: false,
+    fragments: true,
+    autoSlide: 0,
+    plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+});
 document.addEventListener("DOMContentLoaded", function() {
-    try {
-        const plugins = [];
-        if (window.RevealMarkdown) plugins.push(window.RevealMarkdown);
-        if (window.RevealHighlight) plugins.push(window.RevealHighlight);
-        if (window.RevealNotes) plugins.push(window.RevealNotes);
-
-        if (window.Reveal) {
-            window.Reveal.initialize({
-                hash: true,
-                controls: false,
-                controlsTutorial: false,
-                progress: true,
-                history: true,
-                keyboard: true,
-                touch: true,
-                transition: 'slide',
-                transitionSpeed: 'default',
-                backgroundTransition: 'fade',
-                hideAddressBar: true,
-                overview: false,
-                center: true,
-                loop: false,
-                fragments: true,
-                autoSlide: 0,
-                plugins
-            });
-        } else {
-            console.error('Reveal.js not available on DOMContentLoaded');
-        }
-    } catch (err) {
-        console.error('Failed to initialize Reveal:', err);
-    }
     const navBack = document.getElementById("nav-back");
     const navNext = document.getElementById("nav-next");
     const navToc = document.getElementById("nav-toc");
@@ -1279,21 +1527,20 @@ document.addEventListener("DOMContentLoaded", function() {
     navNext.addEventListener("click", function() {
         Reveal.next();
     });
-        navToc.addEventListener("click", function() { Reveal.slide(1); });
+    navToc.addEventListener("click", function() {
+        Reveal.slide(document.querySelector('[id="toc"]').getAttribute('data-index') || 1);
+        Reveal.slide(1);
+    });
     document.getElementById("custom-nav-bar").addEventListener("keydown", function(e) {
         if (e.key === "ArrowRight") { Reveal.next(); }
         if (e.key === "ArrowLeft") { Reveal.prev(); }
         if (e.key === "Home" || e.key === "t" || e.key === "T") { Reveal.slide(1); }
     });
-        // Secure external links
-        document.querySelectorAll('a[target="_blank"]').forEach(a => a.setAttribute('rel','noopener noreferrer'));
 });
 // Copy-to-clipboard for code blocks
 function copyCode(id) {
   var code = document.getElementById(id).innerText;
   navigator.clipboard.writeText(code);
-    const btn = document.querySelector('#'+id).parentElement.querySelector('.copy-btn');
-    if(btn){ const original = btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=original,1500); }
 }
 </script>
 </body>
