@@ -8,11 +8,11 @@
 <meta name="description" content="GitHub Copilot Enterprise setup guide for VA employees: account, environment, personalization, prompts, and healthcare use cases." />
 <meta name="author" content="Kyle J. Coder" />
 <meta name="robots" content="index,follow" />
-<link rel="canonical" href="https://kcoderva.github.io/" />
+<link rel="canonical" href="https://kcoderva.github.io/GitHub-Copilot-Setup-Guide/" />
 <meta property="og:title" content="GitHub Copilot Enterprise Setup Guide (VA)" />
 <meta property="og:description" content="Practical VA-focused setup & usage guide for GitHub Copilot Enterprise." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://kcoderva.github.io/" />
+<meta property="og:url" content="https://kcoderva.github.io/GitHub-Copilot-Setup-Guide/" />
 <meta property="og:image" content="https://avatars.githubusercontent.com/u/9919?s=200&v=4" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="GitHub Copilot Enterprise Setup Guide (VA)" />
@@ -1236,26 +1236,40 @@ Unless required by applicable law or agreed to in writing, software distributed 
 <script src="./dependencies/reveal.js-5.2.1/plugin/markdown/markdown.js" defer></script>
 <script src="./dependencies/reveal.js-5.2.1/plugin/highlight/highlight.js" defer></script>
 <script>
-Reveal.initialize({
-    hash: true,
-    controls: false,
-    controlsTutorial: false,
-    progress: true,
-    history: true,
-    keyboard: true,
-    touch: true,
-    transition: 'slide',
-    transitionSpeed: 'default',
-    backgroundTransition: 'fade',
-    hideAddressBar: true,
-    overview: false,
-    center: true,
-    loop: false,
-    fragments: true,
-    autoSlide: 0,
-    plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
-});
+// Defer initialization until after deferred scripts load (prevents blank screen)
 document.addEventListener("DOMContentLoaded", function() {
+    try {
+        const plugins = [];
+        if (window.RevealMarkdown) plugins.push(window.RevealMarkdown);
+        if (window.RevealHighlight) plugins.push(window.RevealHighlight);
+        if (window.RevealNotes) plugins.push(window.RevealNotes);
+
+        if (window.Reveal) {
+            window.Reveal.initialize({
+                hash: true,
+                controls: false,
+                controlsTutorial: false,
+                progress: true,
+                history: true,
+                keyboard: true,
+                touch: true,
+                transition: 'slide',
+                transitionSpeed: 'default',
+                backgroundTransition: 'fade',
+                hideAddressBar: true,
+                overview: false,
+                center: true,
+                loop: false,
+                fragments: true,
+                autoSlide: 0,
+                plugins
+            });
+        } else {
+            console.error('Reveal.js not available on DOMContentLoaded');
+        }
+    } catch (err) {
+        console.error('Failed to initialize Reveal:', err);
+    }
     const navBack = document.getElementById("nav-back");
     const navNext = document.getElementById("nav-next");
     const navToc = document.getElementById("nav-toc");
