@@ -32,7 +32,7 @@ Thanks for your interest in improving the GitHub Copilot Enterprise Setup Guide 
 3. Make changes (ensure scripts include Apache 2.0 header).
 4. Run a quick validation:
    - Load `index.html` in a browser (check navigation & copy buttons)
-   - Load `GitHub_Copilot_Setup_Guide_PRINTABLE.html` and use Print Preview
+   - Verify the PDF `GitHub Copilot Setup Guide (for VA Employees).pdf` opens from the "Printable Version" button
 5. Commit with a conventional prefix (e.g., `feat:`, `fix:`, `docs:`).
 6. Push and open a Pull Request.
 

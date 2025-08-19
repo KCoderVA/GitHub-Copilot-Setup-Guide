@@ -21,7 +21,7 @@ Interactive Reveal.js slide deck and printable guide to help VA employees (clini
 ## Project Contents
 
 - `index.html` – Interactive slide deck (optimized for web & accessibility)
-- `GitHub_Copilot_Setup_Guide_PRINTABLE.html` – Paginated printable version with dynamic TOC
+- `GitHub Copilot Setup Guide (for VA Employees).pdf` – Canonical printable version
 - `GitHub Copilot Setup Guide (for VA Employees).pdf` – Distributed PDF version
 - `copilot-instructions/` – PowerShell automation scripts, tasks, and Copilot instruction templates
 - `prompts/` – Role and domain-specific prompt template collections (clinical, analytics, security, etc.)
@@ -33,11 +33,11 @@ Interactive Reveal.js slide deck and printable guide to help VA employees (clini
 1. Fork or clone this repository.
 2. Enable GitHub Pages in repository settings: Source = `main` (root).
 3. Visit: `https://<your-username>.github.io/GitHub-Copilot-Setup-Guide/`.
-4. Open `index.html` for the interactive version or the printable variant for generating a PDF.
+4. Open `index.html` for the interactive version. For printing/distribution, use the PDF `GitHub Copilot Setup Guide (for VA Employees).pdf`.
 
 ## Printable Version
 
-Use the "Printable Version" button in the top-right of `index.html` OR open `GitHub_Copilot_Setup_Guide_PRINTABLE.html` directly. Use your browser Print dialog (Landscape, margins = default) to export to PDF.
+Use the "Printable Version" button in the top-right of `index.html` to open the PDF (`GitHub Copilot Setup Guide (for VA Employees).pdf`).
 
 ## PowerShell Automation Scripts
 Located in `copilot-instructions/`:

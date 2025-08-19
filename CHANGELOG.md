@@ -20,10 +20,10 @@ All notable changes to this project will be documented in this file.
 
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and semantic versioning principles when practical.
 
-## [6.3] - 2025-08-14 (Initial Public Release)
+## [6.3.0] - 2025-08-19 (Initial Public Release)
 ### Added
 - Interactive `index.html` Reveal.js slide deck with VA-focused Copilot Enterprise onboarding content.
-- Printable version: `GitHub_Copilot_Setup_Guide_PRINTABLE.html` featuring dynamic pagination, headers/footers, and auto-generated Table of Contents.
+- Printable version: `GitHub Copilot Setup Guide (for VA Employees).pdf` (exported from the printable HTML during release).
 - Accessibility enhancements (skip link, keyboard focus outlines, secured external links, reduced duplicate content).
 - SEO & social meta tags (OpenGraph, Twitter) for improved sharing preview.
 - PowerShell automation scripts in `copilot-instructions/`:
@@ -64,4 +64,4 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.0.
 
 ---
 
-[6.3]: https://github.com/KCoderVA/GitHub-Copilot-Setup-Guide/releases/tag/v6.3 (pending release tag)
+[6.3.0]: https://github.com/KCoderVA/GitHub-Copilot-Setup-Guide/releases/tag/v6.3.0
