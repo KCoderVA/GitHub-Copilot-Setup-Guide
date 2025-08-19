@@ -43,4 +43,4 @@ Tag: v6.3.0
 - Click "Printable Version" to download the PDF for printing/distribution
 
 ## Acknowledgements
-- Reveal.js (MIT) and highlight.js; upstream license included in `dependencies/LICENSE.txt`
+- Reveal.js (MIT) and highlight.js; see `docs/THIRD_PARTY_NOTICES.md` for license details.
