@@ -117,10 +117,13 @@ function Test-ReparsePoint {
 
 function Get-ItemType {
     param([System.IO.FileSystemInfo]$Item)
-    if (Test-ReparsePoint -Item $Item) { return 'ReparsePoint' }
-    if ($Item.PSIsContainer) { return 'Folder' }
+    if ($Item.PSIsContainer) {
+        if (Test-ReparsePoint -Item $Item) { return 'ReparsePoint' }
+        return 'Folder'
+    }
     $ext = ($Item.Extension | ForEach-Object { $_.ToLowerInvariant() })
     if ($ext -eq '.lnk') { return 'Shortcut' }
+    # Treat non-container reparse files as normal files for analysis purposes
     return 'File'
 }
 
@@ -265,6 +268,7 @@ function New-RowObject {
         CreatedTime     = $created
         LastModifiedTime= $modified
         Author          = $Author
+        IsReparsePoint  = [string](Test-ReparsePoint -Item $Item)
         IsHidden        = [string]$($attrs.IsHidden)
         IsReadOnly      = [string]$($attrs.IsReadOnly)
         IsSystem        = [string]$($attrs.IsSystem)
@@ -356,6 +360,8 @@ if ($topExt) {
 
 if ($DryRun) {
     Write-Info "DRY RUN: Enumeration complete. No content analysis performed and no CSV generated. Re-run without -DryRun to produce the CSV report."
+    # Keep the window open for readability
+    try { [void](Read-Host -Prompt "Press Enter to exit") } catch {}
     exit 0
 }
 
@@ -428,3 +434,13 @@ Write-CsvWithBom -CsvPath $csvPath -SummaryLine $summaryLine -Rows $rows
 
 # 6) Final message
 Write-Info "Recursive Directory Analysis is now complete. This analysis found [$totalItems] total objects, which contain a combined [$sumLines] total lines of raw text & a combined [$sumChars] individual characters. Detailed results saved to: $csvPath"
+
+# Attempt to open the CSV report automatically
+try {
+    Start-Process -FilePath $csvPath -ErrorAction Stop | Out-Null
+} catch {
+    Write-Warn "Could not automatically open the CSV: $($_.Exception.Message)"
+}
+
+# Keep the window open for readability
+try { [void](Read-Host -Prompt "Press Enter to exit") } catch {}
