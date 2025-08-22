@@ -62,6 +62,39 @@ function Prompt-ForRootPath {
     }
 }
 
+function Show-IntroMessage {
+        $intro = @'
+Recursive Directory Analysis (PowerShell)
+------------------------------------------------------------
+This tool recursively inventories ALL items (files, folders, shortcuts, and
+reparse points) under a target directory. It includes hidden and system items.
+It lists reparse points and linked folders as items but does NOT traverse into
+their targets. Shortcut (.lnk) files are included as their own items; targets
+are not resolved.
+
+Run modes:
+    - Default (no -DryRun): Full analysis of readable text files (lines and
+        characters) and metadata for all items. Outputs a CSV report saved to
+        the chosen root folder (UTF-8 with BOM).
+    - Dry run (-DryRun): Performs the full recursive search and prints a concise
+        summary only. No CSV is written and no per-file content is read.
+
+Usage options:
+    - Provide -Path <folder> when launching the script to skip this prompt.
+    - Omit -Path to be prompted here.
+    - Press Ctrl+C at any time to cancel.
+
+Output artifacts:
+    - CSV file named: RecursiveDirectoryAnalysis_YYYYMMDD_HHmmss.csv
+        Location: the root folder you choose below.
+        Includes: ItemType, Name, Extension, FullPath, SizeBytes, CreatedTime,
+                            LastModifiedTime, Author, flags (Hidden/ReadOnly/System/Archive),
+                            LinesOfText, CharacterCount, and a totals footer row.
+------------------------------------------------------------
+'@
+        Write-Host $intro
+}
+
 function Get-AuthorOrNull {
     param([string]$FullPath)
     try {
@@ -73,7 +106,7 @@ function Get-AuthorOrNull {
     }
 }
 
-function Is-ReparsePoint {
+function Test-ReparsePoint {
     param([System.IO.FileSystemInfo]$Item)
     try {
         return (($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)
@@ -84,7 +117,7 @@ function Is-ReparsePoint {
 
 function Get-ItemType {
     param([System.IO.FileSystemInfo]$Item)
-    if (Is-ReparsePoint -Item $Item) { return 'ReparsePoint' }
+    if (Test-ReparsePoint -Item $Item) { return 'ReparsePoint' }
     if ($Item.PSIsContainer) { return 'Folder' }
     $ext = ($Item.Extension | ForEach-Object { $_.ToLowerInvariant() })
     if ($ext -eq '.lnk') { return 'Shortcut' }
@@ -161,7 +194,7 @@ function Get-ItemAttributesBooleans {
     }
 }
 
-function Enumerate-AllItems {
+function Get-AllItems {
     param([string]$Root)
 
     $result = New-Object System.Collections.Generic.List[System.IO.FileSystemInfo]
@@ -187,7 +220,7 @@ function Enumerate-AllItems {
         foreach ($child in $children) {
             $result.Add($child) | Out-Null
             if ($child.PSIsContainer) {
-                if (Is-ReparsePoint -Item $child) {
+                if (Test-ReparsePoint -Item $child) {
                     # list but do not traverse
                     continue
                 }
@@ -219,9 +252,9 @@ function New-RowObject {
     $full = try { $Item.FullName } catch { $null }
 
     $extVal = if ($ext) { $ext } else { 'null' }
-    $sizeVal = if ($SizeBytes -ne $null) { [string]$SizeBytes } else { 'null' }
-    $linesVal = if ($Lines -ne $null) { [string]$Lines } else { 'null' }
-    $charsVal = if ($Chars -ne $null) { [string]$Chars } else { 'null' }
+    $sizeVal = if ($null -ne $SizeBytes) { [string]$SizeBytes } else { 'null' }
+    $linesVal = if ($null -ne $Lines) { [string]$Lines } else { 'null' }
+    $charsVal = if ($null -ne $Chars) { [string]$Chars } else { 'null' }
 
     $obj = [ordered]@{
         ItemType        = $ItemType
@@ -281,7 +314,7 @@ function Write-CsvWithBom {
 
 # 1) Resolve input path
 $rootPath = if ($PSBoundParameters.ContainsKey('Path') -and $Path) { Resolve-TargetPath -InputPath $Path } else { $null }
-if (-not $rootPath) { $rootPath = Prompt-ForRootPath }
+if (-not $rootPath) { Show-IntroMessage; $rootPath = Prompt-ForRootPath }
 
 # Validate directory
 if (-not (Test-Path -LiteralPath $rootPath -PathType Container)) {
@@ -292,13 +325,13 @@ if (-not (Test-Path -LiteralPath $rootPath -PathType Container)) {
 Write-Info "Scanning: $rootPath"
 
 # 2) Enumerate all items (including root)
-$allItems = Enumerate-AllItems -Root $rootPath
+$allItems = Get-AllItems -Root $rootPath
 
 # Compute terminal summary basics
-$files   = @($allItems | Where-Object { -not $_.PSIsContainer -and -not (Is-ReparsePoint -Item $_) -and ($_.Extension.ToLowerInvariant() -ne '.lnk') })
-$folders = @($allItems | Where-Object { $_.PSIsContainer -and -not (Is-ReparsePoint -Item $_) })
+$files   = @($allItems | Where-Object { -not $_.PSIsContainer -and -not (Test-ReparsePoint -Item $_) -and ($_.Extension.ToLowerInvariant() -ne '.lnk') })
+$folders = @($allItems | Where-Object { $_.PSIsContainer -and -not (Test-ReparsePoint -Item $_) })
 $shorts  = @($allItems | Where-Object { -not $_.PSIsContainer -and ($_.Extension.ToLowerInvariant() -eq '.lnk') })
-$reparse = @($allItems | Where-Object { Is-ReparsePoint -Item $_ })
+$reparse = @($allItems | Where-Object { Test-ReparsePoint -Item $_ })
 
 $totalItems = $allItems.Count
 $totalFiles = $files.Count
@@ -353,7 +386,7 @@ foreach ($item in $allItems) {
         $isBinary = Test-IsBinaryFile -FullPath $item.FullName
         if (-not $isBinary) {
             $m = Measure-TextFile -FullPath $item.FullName
-            if ($m -and $m.Lines -ne $null -and $m.Chars -ne $null) {
+            if ($m -and $null -ne $m.Lines -and $null -ne $m.Chars) {
                 $lines = [int]$m.Lines
                 $chars = [int64]$m.Chars
                 $sumLines += $lines
