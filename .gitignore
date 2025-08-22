@@ -21,6 +21,10 @@ Thumbs.db
 *.tmp
 ~$*
 docs/archive/
+# Ignore everything in docs/archive/
+docs/archive/*
+# But do NOT ignore anything else in docs/
+!docs/**
 
 # Generated PDFs (keep only the canonical one in docs/)
 *.pdf
