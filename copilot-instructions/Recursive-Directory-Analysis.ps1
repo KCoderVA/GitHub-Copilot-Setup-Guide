@@ -28,7 +28,10 @@ param(
     [Parameter(Position=0)]
     [string]$Path,
 
-    [switch]$DryRun
+    [switch]$DryRun,
+
+    # Show progress by default; pass -NoProgress to disable
+    [switch]$NoProgress
 )
 
 Set-StrictMode -Version Latest
@@ -51,7 +54,7 @@ function Resolve-TargetPath {
     }
 }
 
-function Prompt-ForRootPath {
+function Read-RootPath {
     while ($true) {
         $inputPath = Read-Host -Prompt "Enter the target directory path to analyze"
         if ([string]::IsNullOrWhiteSpace($inputPath)) { continue }
@@ -133,7 +136,7 @@ function Read-HostWithTimeout {
     return $text
 }
 
-function Ask-YesNoWithTimeout {
+function Read-YesNoWithTimeout {
     param(
         [string]$Question,
         [int]$TimeoutSeconds = 30,
@@ -269,7 +272,10 @@ function Get-ItemAttributesBooleans {
 }
 
 function Get-AllItems {
-    param([string]$Root)
+    param(
+        [string]$Root,
+        [bool]$EnableProgress = $true
+    )
 
     $result = New-Object System.Collections.Generic.List[System.IO.FileSystemInfo]
 
@@ -281,8 +287,15 @@ function Get-AllItems {
     $stack = New-Object System.Collections.Stack
     $stack.Push($rootDir)
 
+    $processedDirs = 0
+    $lastUpdate = Get-Date
+    $spin = '|/-\\'
+    $spinIdx = 0
+    $progressId = 1
+
     while ($stack.Count -gt 0) {
         $dir = $stack.Pop()
+        $processedDirs++
         # List children of $dir
         try {
             $children = Get-ChildItem -LiteralPath $dir.FullName -Force -ErrorAction Stop
@@ -302,8 +315,20 @@ function Get-AllItems {
                 $stack.Push($child)
             }
         }
+
+        if ($EnableProgress) {
+            $now = Get-Date
+            if (($now - $lastUpdate).TotalMilliseconds -ge 200) {
+                $spinChar = $spin[$spinIdx % $spin.Length]
+                $spinIdx++
+                $status = "[$spinChar] Processed dirs: $processedDirs | Discovered items: $($result.Count)"
+                Write-Progress -Id $progressId -Activity "Scanning (enumerating items)" -Status $status -PercentComplete -1
+                $lastUpdate = $now
+            }
+        }
     }
 
+    if ($EnableProgress) { Write-Progress -Id $progressId -Activity "Scanning (enumerating items)" -Completed }
     return $result
 }
 
@@ -389,7 +414,7 @@ function Write-CsvWithBom {
 
 # 1) Resolve input path
 $rootPath = if ($PSBoundParameters.ContainsKey('Path') -and $Path) { Resolve-TargetPath -InputPath $Path } else { $null }
-if (-not $rootPath) { Show-IntroMessage; $rootPath = Prompt-ForRootPath }
+if (-not $rootPath) { Show-IntroMessage; $rootPath = Read-RootPath }
 
 # Validate directory
 if (-not (Test-Path -LiteralPath $rootPath -PathType Container)) {
@@ -403,10 +428,10 @@ Write-Info "Scanning: $rootPath"
 $banner = "Answer YES or NO for each preference. If no response within 30 seconds, YES will be selected."
 Show-Header "Scan Preferences"
 Write-Host $banner -ForegroundColor Gray
-$ExcludeGit           = Ask-YesNoWithTimeout -Question "Exclude any .git repository system files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
-$ExcludeCompressed    = Ask-YesNoWithTimeout -Question "Exclude any compressed items or .zip files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
-$ExcludeArchiveOrTemp = Ask-YesNoWithTimeout -Question "Exclude any obvious archive or temp files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
-$ExcludeFoldersRows   = Ask-YesNoWithTimeout -Question "Exclude all folder objects from final analysis report as their own rows? (folder contents still analyzed)" -TimeoutSeconds 30 -DefaultYes $true
+$ExcludeGit           = Read-YesNoWithTimeout -Question "Exclude any .git repository system files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
+$ExcludeCompressed    = Read-YesNoWithTimeout -Question "Exclude any compressed items or .zip files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
+$ExcludeArchiveOrTemp = Read-YesNoWithTimeout -Question "Exclude any obvious archive or temp files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
+$ExcludeFoldersRows   = Read-YesNoWithTimeout -Question "Exclude all folder objects from final analysis report as their own rows? (folder contents still analyzed)" -TimeoutSeconds 30 -DefaultYes $true
 
 Show-PreferencesSummary -ExcludeGit:$ExcludeGit -ExcludeCompressed:$ExcludeCompressed -ExcludeArchiveOrTemp:$ExcludeArchiveOrTemp -ExcludeFoldersRows:$ExcludeFoldersRows
 New-Divider
@@ -414,7 +439,7 @@ Write-Host "Starting recursive scan for: $rootPath" -ForegroundColor Cyan
 New-Divider
 
 # Define filter predicates (apply to reporting/analysis only; enumeration remains complete)
-function Should-ExcludeItem {
+function Test-ExcludeItem {
     param([System.IO.FileSystemInfo]$Item)
     $path = $null; try { $path = $Item.FullName } catch {}
     $name = $null; try { $name = $Item.Name } catch {}
@@ -446,10 +471,11 @@ function Should-ExcludeItem {
 }
 
 # 2) Enumerate all items (including root)
-$allItems = Get-AllItems -Root $rootPath
+$showProgress = -not $NoProgress
+$allItems = Get-AllItems -Root $rootPath -EnableProgress:$showProgress
 
 # Apply reporting/analysis filters per user preferences
-$reportItems = @($allItems | Where-Object { -not (Should-ExcludeItem -Item $_) })
+$reportItems = @($allItems | Where-Object { -not (Test-ExcludeItem -Item $_) })
 
 # Compute terminal summary basics from filtered items
 $files   = @($reportItems | Where-Object { -not $_.PSIsContainer -and -not (Test-ReparsePoint -Item $_) -and ($_.Extension.ToLowerInvariant() -ne '.lnk') })
@@ -492,6 +518,10 @@ $rows = New-Object System.Collections.Generic.List[object]
 [int64]$sumChars = 0
 [int64]$sumSize  = 0
 
+$totalToAnalyze = $reportItems.Count
+$progressAnalysisId = 2
+$processedItems = 0
+$lastAnalysisUpdate = Get-Date
 foreach ($item in $reportItems) {
     $type = Get-ItemType -Item $item
 
@@ -523,7 +553,21 @@ foreach ($item in $reportItems) {
 
     $row = New-RowObject -ItemType $type -Item $item -SizeBytes $sizeBytes -Author $author -Lines $lines -Chars $chars
     $rows.Add($row) | Out-Null
+
+    # Analysis progress
+    $processedItems++
+    if ($showProgress -and $totalToAnalyze -gt 0) {
+        $now = Get-Date
+        if (($now - $lastAnalysisUpdate).TotalMilliseconds -ge 200 -or $processedItems -eq $totalToAnalyze) {
+            $pct = [int](($processedItems * 100.0) / $totalToAnalyze)
+            $status = "Analyzing item $processedItems of $totalToAnalyze"
+            Write-Progress -Id $progressAnalysisId -Activity "Analyzing items" -Status $status -PercentComplete $pct
+            $lastAnalysisUpdate = $now
+        }
+    }
 }
+
+if ($showProgress) { Write-Progress -Id $progressAnalysisId -Activity "Analyzing items" -Completed }
 
 # 5) CSV Generation
 $timestamp = (Get-Date).ToString('yyyyMMdd_HHmmss')
