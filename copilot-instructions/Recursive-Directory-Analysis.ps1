@@ -118,7 +118,7 @@ function Read-HostWithTimeout {
                 }
             } else {
                 Start-Sleep -Milliseconds 50
-            }
+        }
         }
     } catch {
         # Fallback to default on any console issue
@@ -126,6 +126,8 @@ function Read-HostWithTimeout {
         return $Default
     }
     $sw.Stop()
+    # Ensure we move to the next line after input or timeout for readability
+    Write-Host ""
     $text = $sb.ToString().Trim()
     if ([string]::IsNullOrWhiteSpace($text)) { return $Default }
     return $text
@@ -143,6 +145,25 @@ function Ask-YesNoWithTimeout {
     if ($ans -match '^(?i)n(o)?$') { return $false }
     # Unrecognized input -> default
     return $DefaultYes
+}
+
+# Simple UI helpers for clearer terminal output
+function New-Divider { param([string]$Char='-',[int]$Count=60) Write-Host ("" + ($Char * $Count)) -ForegroundColor DarkGray }
+function Show-Header   { param([string]$Title) Write-Host ""; New-Divider; Write-Host $Title -ForegroundColor Cyan; New-Divider }
+function Show-SubHeader{ param([string]$Title) Write-Host $Title -ForegroundColor Yellow }
+function Format-YesNo  { param([bool]$Val) if ($Val) { Write-Host 'YES' -ForegroundColor Green -NoNewline } else { Write-Host 'NO' -ForegroundColor Red -NoNewline } }
+function Show-PreferencesSummary {
+    param(
+        [bool]$ExcludeGit,
+        [bool]$ExcludeCompressed,
+        [bool]$ExcludeArchiveOrTemp,
+        [bool]$ExcludeFoldersRows
+    )
+    Show-SubHeader "Chosen scan preferences:"
+    Write-Host "  1) Exclude .git repo items: " -NoNewline;  Format-YesNo -Val:$ExcludeGit;        Write-Host ""
+    Write-Host "  2) Exclude compressed items: " -NoNewline;  Format-YesNo -Val:$ExcludeCompressed; Write-Host ""
+    Write-Host "  3) Exclude archive/temp items: " -NoNewline;Format-YesNo -Val:$ExcludeArchiveOrTemp;Write-Host ""
+    Write-Host "  4) Exclude folder rows: " -NoNewline;     Format-YesNo -Val:$ExcludeFoldersRows;  Write-Host ""
 }
 
 function Get-AuthorOrNull {
@@ -379,10 +400,18 @@ if (-not (Test-Path -LiteralPath $rootPath -PathType Container)) {
 Write-Info "Scanning: $rootPath"
 
 # Ask preference questions (30s timeout each, default YES)
+$banner = "Answer YES or NO for each preference. If no response within 30 seconds, YES will be selected."
+Show-Header "Scan Preferences"
+Write-Host $banner -ForegroundColor Gray
 $ExcludeGit           = Ask-YesNoWithTimeout -Question "Exclude any .git repository system files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
 $ExcludeCompressed    = Ask-YesNoWithTimeout -Question "Exclude any compressed items or .zip files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
 $ExcludeArchiveOrTemp = Ask-YesNoWithTimeout -Question "Exclude any obvious archive or temp files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
 $ExcludeFoldersRows   = Ask-YesNoWithTimeout -Question "Exclude all folder objects from final analysis report as their own rows? (folder contents still analyzed)" -TimeoutSeconds 30 -DefaultYes $true
+
+Show-PreferencesSummary -ExcludeGit:$ExcludeGit -ExcludeCompressed:$ExcludeCompressed -ExcludeArchiveOrTemp:$ExcludeArchiveOrTemp -ExcludeFoldersRows:$ExcludeFoldersRows
+New-Divider
+Write-Host "Starting recursive scan for: $rootPath" -ForegroundColor Cyan
+New-Divider
 
 # Define filter predicates (apply to reporting/analysis only; enumeration remains complete)
 function Should-ExcludeItem {
@@ -439,10 +468,10 @@ $extSummary = $files | ForEach-Object { $_.Extension.ToLowerInvariant() } | Grou
 $topN = 10
 $topExt = $extSummary | Select-Object -First $topN
 
-Write-Info "Summary of '$rootPath':"
+Show-Header "Summary of '$rootPath'"
 Write-Info "  Total items: $totalItems (Files=$totalFiles, Folders=$totalFolders, Shortcuts=$totalShortcuts, ReparsePoints=$totalReparse)"
 if ($topExt) {
-    Write-Info "  Top extensions:"
+    Write-Host "  Top extensions:" -ForegroundColor Yellow
     foreach ($g in $topExt) {
         $extName = if ($g.Name) { $g.Name } else { '(no extension)' }
         Write-Info "    $extName : $($g.Count)"
@@ -524,7 +553,9 @@ $rows.Add([PSCustomObject]$totalsRow) | Out-Null
 Write-CsvWithBom -CsvPath $csvPath -SummaryLine $summaryLine -Rows $rows
 
 # 6) Final message
-Write-Info "Recursive Directory Analysis is now complete. This analysis found [$totalItems] total objects, which contain a combined [$sumLines] total lines of raw text & a combined [$sumChars] individual characters. Detailed results saved to: $csvPath"
+Show-Header "Analysis Complete"
+Write-Info "This analysis found [$totalItems] total objects, which contain a combined [$sumLines] total lines of raw text & a combined [$sumChars] individual characters."
+Write-Host "Detailed results saved to:" -NoNewline; Write-Host " $csvPath" -ForegroundColor Green
 
 # Attempt to open the CSV report automatically
 try {
