@@ -95,6 +95,56 @@ Output artifacts:
         Write-Host $intro
 }
 
+# Read a line with timeout (returns default if user doesn't answer in time)
+function Read-HostWithTimeout {
+    param(
+        [string]$Prompt,
+        [int]$TimeoutSeconds = 30,
+        [string]$Default = ''
+    )
+    Write-Host ("$Prompt (default after $TimeoutSeconds sec: $Default)")
+    $sb = New-Object System.Text.StringBuilder
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        while ($sw.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+            if ([System.Console]::KeyAvailable) {
+                $key = [System.Console]::ReadKey($true)
+                if ($key.Key -eq 'Enter') { break }
+                elseif ($key.Key -eq 'Backspace') {
+                    if ($sb.Length -gt 0) { $sb.Length = $sb.Length - 1; Write-Host "`b `b" -NoNewline }
+                } else {
+                    [void]$sb.Append($key.KeyChar)
+                    Write-Host $key.KeyChar -NoNewline
+                }
+            } else {
+                Start-Sleep -Milliseconds 50
+            }
+        }
+    } catch {
+        # Fallback to default on any console issue
+        $sw.Stop()
+        return $Default
+    }
+    $sw.Stop()
+    $text = $sb.ToString().Trim()
+    if ([string]::IsNullOrWhiteSpace($text)) { return $Default }
+    return $text
+}
+
+function Ask-YesNoWithTimeout {
+    param(
+        [string]$Question,
+        [int]$TimeoutSeconds = 30,
+        [bool]$DefaultYes = $true
+    )
+    $defText = if ($DefaultYes) { 'YES' } else { 'NO' }
+    $ans = Read-HostWithTimeout -Prompt "$Question [YES/NO]" -TimeoutSeconds $TimeoutSeconds -Default $defText
+    if ($ans -match '^(?i)y(es)?$') { return $true }
+    if ($ans -match '^(?i)n(o)?$') { return $false }
+    # Unrecognized input -> default
+    return $DefaultYes
+}
+
 function Get-AuthorOrNull {
     param([string]$FullPath)
     try {
@@ -292,7 +342,7 @@ function Build-CsvSummaryLine {
         [string]$Root
     )
     $ts = (Get-Date).ToString('yyyy-MM-ddTHH:mm:ssK')
-    return "Recursive Directory Analysis summary for '$Root' at $ts — Items=$TotalItems; Files=$TotalFiles; Folders=$TotalFolders; Shortcuts=$TotalShortcuts; ReparsePoints=$TotalReparse; SumLines=$SumLines; SumChars=$SumChars; SumSizeBytes=$SumSizeBytes"
+    return "Recursive Directory Analysis summary for '$Root' at $ts — Items=$TotalItems; Files=$TotalFiles; Folders=$TotalFolders; Shortcuts=$TotalShortcuts; ReparsePoints=$TotalReparse; SumLines=$SumLines; SumChars=$SumChars; SumSizeBytes=$SumSizeBytes (filters may apply)"
 }
 
 function Write-CsvWithBom {
@@ -328,16 +378,57 @@ if (-not (Test-Path -LiteralPath $rootPath -PathType Container)) {
 
 Write-Info "Scanning: $rootPath"
 
+# Ask preference questions (30s timeout each, default YES)
+$ExcludeGit           = Ask-YesNoWithTimeout -Question "Exclude any .git repository system files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
+$ExcludeCompressed    = Ask-YesNoWithTimeout -Question "Exclude any compressed items or .zip files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
+$ExcludeArchiveOrTemp = Ask-YesNoWithTimeout -Question "Exclude any obvious archive or temp files, objects, or folders?" -TimeoutSeconds 30 -DefaultYes $true
+$ExcludeFoldersRows   = Ask-YesNoWithTimeout -Question "Exclude all folder objects from final analysis report as their own rows? (folder contents still analyzed)" -TimeoutSeconds 30 -DefaultYes $true
+
+# Define filter predicates (apply to reporting/analysis only; enumeration remains complete)
+function Should-ExcludeItem {
+    param([System.IO.FileSystemInfo]$Item)
+    $path = $null; try { $path = $Item.FullName } catch {}
+    $name = $null; try { $name = $Item.Name } catch {}
+
+    # 1) .git repo
+    if ($ExcludeGit) {
+        if ($path -and ($path -match "(?i)(\\|/)\.git(\\|/|$)")) { return $true }
+        if ($name -and ($name -match '^(?i)\.git$')) { return $true }
+    }
+
+    # 2) compressed (common extensions)
+    if ($ExcludeCompressed -and -not $Item.PSIsContainer) {
+        $ext = ''
+        try { $ext = $Item.Extension.ToLowerInvariant() } catch {}
+        $compressedExts = @('.zip','.7z','.rar','.gz','.tar','.bz2','.xz','.zipx')
+        if ($compressedExts -contains $ext) { return $true }
+    }
+
+    # 3) archive/temp paths or names
+    if ($ExcludeArchiveOrTemp) {
+        if ($path -and ($path -match '(?i)(\\|/)(archive|archives|archived|temp|tmp)(\\|/)')) { return $true }
+        if ($name -and ($name -match '(?i)^(archive|archives|archived|temp|tmp)$')) { return $true }
+    }
+
+    # 4) exclude folders as rows
+    if ($ExcludeFoldersRows -and $Item.PSIsContainer) { return $true }
+
+    return $false
+}
+
 # 2) Enumerate all items (including root)
 $allItems = Get-AllItems -Root $rootPath
 
-# Compute terminal summary basics
-$files   = @($allItems | Where-Object { -not $_.PSIsContainer -and -not (Test-ReparsePoint -Item $_) -and ($_.Extension.ToLowerInvariant() -ne '.lnk') })
-$folders = @($allItems | Where-Object { $_.PSIsContainer -and -not (Test-ReparsePoint -Item $_) })
-$shorts  = @($allItems | Where-Object { -not $_.PSIsContainer -and ($_.Extension.ToLowerInvariant() -eq '.lnk') })
-$reparse = @($allItems | Where-Object { Test-ReparsePoint -Item $_ })
+# Apply reporting/analysis filters per user preferences
+$reportItems = @($allItems | Where-Object { -not (Should-ExcludeItem -Item $_) })
 
-$totalItems = $allItems.Count
+# Compute terminal summary basics from filtered items
+$files   = @($reportItems | Where-Object { -not $_.PSIsContainer -and -not (Test-ReparsePoint -Item $_) -and ($_.Extension.ToLowerInvariant() -ne '.lnk') })
+$folders = @($reportItems | Where-Object { $_.PSIsContainer -and -not (Test-ReparsePoint -Item $_) })
+$shorts  = @($reportItems | Where-Object { -not $_.PSIsContainer -and ($_.Extension.ToLowerInvariant() -eq '.lnk') })
+$reparse = @($reportItems | Where-Object { Test-ReparsePoint -Item $_ })
+
+$totalItems = $reportItems.Count
 $totalFiles = $files.Count
 $totalFolders = $folders.Count
 $totalShortcuts = $shorts.Count
@@ -372,7 +463,7 @@ $rows = New-Object System.Collections.Generic.List[object]
 [int64]$sumChars = 0
 [int64]$sumSize  = 0
 
-foreach ($item in $allItems) {
+foreach ($item in $reportItems) {
     $type = Get-ItemType -Item $item
 
     # SizeBytes
