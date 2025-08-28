@@ -10,8 +10,7 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/*
-!.vscode/tasks.json
+.vscode/
 *.code-workspace
 
 # Archives / temp
@@ -20,11 +19,10 @@ Thumbs.db
 *.bak
 *.tmp
 ~$*
+
+# Documentation subfolders to exclude from the repo
 docs/archive/
-# Ignore everything in docs/archive/
-docs/archive/*
-# But do NOT ignore anything else in docs/
-!docs/**
+docs/reports/
 
 # Generated PDFs (keep only the canonical one in docs/)
 *.pdf
