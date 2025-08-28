@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Generate Report (HTML)",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-NoLogo",
+				"-NoProfile",
+				"-File",
+				"S:\\Informatics\\Data Team\\GitHub Copilot Info\\copilot-instructions\\Generate-ProductivityReport.ps1",
+				"-ReportType",
+				"AllTime",
+				"-GitRepoPath",
+				"S:\\Informatics\\Data Team\\GitHub Copilot Info",
+				"-NonInteractive",
+				"-Quiet",
+				"-OutputFormat",
+				"HTML"
+			],
+			"problemMatcher": [
+				{
+					"label": "powershell-errors",
+					"owner": "powershell",
+					"fileLocation": "absolute",
+					"severity": "error",
+					"pattern": [
+						{ "regexp": "^At\\s+(.+?):(\\d+)\\s+char:(\\d+)$", "file": 1, "line": 2, "column": 3 },
+						{ "regexp": "^(.*)$", "message": 1 }
+					]
+				}
+			],
+			"group": "build"
+		}
+	]
+}

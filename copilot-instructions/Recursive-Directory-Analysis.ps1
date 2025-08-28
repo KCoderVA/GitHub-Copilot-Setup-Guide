@@ -173,10 +173,10 @@ function Get-AuthorOrNull {
     param([string]$FullPath)
     try {
         $acl = Get-Acl -LiteralPath $FullPath -ErrorAction Stop
-        if ($acl -and $acl.Owner) { return $acl.Owner }
-        else { return 'null' }
+    if ($acl -and $acl.Owner) { return $acl.Owner }
+    else { return '' }
     } catch {
-        return 'null'
+    return ''
     }
 }
 
@@ -344,33 +344,118 @@ function New-RowObject {
     $ext = if (-not $Item.PSIsContainer) { ($Item.Extension.ToLowerInvariant()); } else { $null }
     $attrs = Get-ItemAttributesBooleans -Item $Item
 
-    $created = try { $Item.CreationTime.ToString("yyyy-MM-ddTHH:mm:ss.fffK") } catch { 'null' }
-    $modified = try { $Item.LastWriteTime.ToString("yyyy-MM-ddTHH:mm:ss.fffK") } catch { 'null' }
+    $created = try { $Item.CreationTime.ToString("yyyy-MM-ddTHH:mm:ss.fffK") } catch { '' }
+    $modified = try { $Item.LastWriteTime.ToString("yyyy-MM-ddTHH:mm:ss.fffK") } catch { '' }
 
     $name = try { $Item.Name } catch { [System.IO.Path]::GetFileName($Item.FullName) }
     $full = try { $Item.FullName } catch { $null }
 
-    $extVal = if ($ext) { $ext } else { 'null' }
-    $sizeVal = if ($null -ne $SizeBytes) { [string]$SizeBytes } else { 'null' }
-    $linesVal = if ($null -ne $Lines) { [string]$Lines } else { 'null' }
-    $charsVal = if ($null -ne $Chars) { [string]$Chars } else { 'null' }
+    $extVal = if ($ext) { $ext } else { '' }
+    $sizeVal = if ($null -ne $SizeBytes) { [string]$SizeBytes } else { '' }
+    $linesVal = if ($null -ne $Lines) { [string]$Lines } else { '' }
+    $charsVal = if ($null -ne $Chars) { [string]$Chars } else { '' }
+
+    <#
+    ----------------------------------------------------------------------
+    Productivity & Labor Hour Estimation Benchmarks (Explanation Block)
+    ----------------------------------------------------------------------
+    The following factors are used to estimate "labor hours" for each file,
+    based on its detected LinesOfText. These estimates reflect widely cited
+    industry heuristics, government reports, and community experience.
+
+    - LaborHours_FederalEnvironment(Dept of VA)PowerPlatformsDev: 0.5 hrs/line
+        * US Government environment (VA, DoD, etc.): strict security, compliance,
+          restricted connectors, slow workflows, heavy documentation.
+        * Productivity is lower due to overhead, workarounds, and constraints.
+        * GAO reports: https://www.gao.gov/products/gao-23-104779
+        * StackOverflow: https://stackoverflow.com/questions/73713134/powerapps-gov-cloud-limitations
+
+    - LaborHours_TraditionalDev: 0.1 hrs/line
+        * Based on COCOMO model, industry surveys, "Code Complete" by Steve McConnell.
+
+    - LaborHours_RegularPowerPlatformDev: 0.25 hrs/line
+        * An average Power Platform developer in a regular large company, working solo.
+        * Reference: Industry Power Platform averages.
+
+    - LaborHours_AdvancedLowComplexityPowerPlatformDev: 0.15 hrs/line
+        * Experienced developer with advanced training/certifications, working solo on low-complexity projects at a major tech company/university.
+
+    - LaborHours_AdvancedHighComplexityPowerPlatformDev: 0.33 hrs/line
+        * Experienced developer with advanced training/certifications, working solo on high-complexity projects, sensitive content, self-built dependencies.
+
+    - LaborHours_VibeCoderCopilotAgent: 0.02 hrs/line
+        * Average 'vibe coder' using VS Code Copilot agent or similar LLM in a regular large company.
+
+    - LaborHours_RegularJavaPythonDev_FederalEnvironment: 0.2 hrs/line
+        * Regular Java/Python developer under federal government restrictions (no premium connectors, no admin rights, heavy compliance).
+
+    - LaborHours_PowerPlatformHobbyist: 1.0 hrs/line
+        * Standard computer user with average computer literacy, no programming background,
+          learning Power Platform tools as a hobby/extracurricular interest.
+        * Anecdotal: Microsoft Power Platform forums.
+
+    Sources and references for these estimates are included for transparency. Adjust factors as needed for your organization's historical data.
+    ----------------------------------------------------------------------
+    #>
+
+    # Productivity estimation factors
+    $factorFederalGovVA         = 0.5
+    $factorTraditionalDev       = 0.1
+    $factorRegularPPDev         = 0.25
+    $factorAdvancedLowComplexPP = 0.15
+    $factorAdvancedHighComplexPP= 0.33
+    $factorVibeCoderCopilot     = 0.02
+    $factorJavaPythonFed        = 0.2
+    $factorPowerPlatformHobbyist= 1.0
+
+    # Calculate labor hours for each benchmark (only if Lines is available)
+    $laborFederalGovVA         = if ($null -ne $Lines) { [math]::Round($Lines * $factorFederalGovVA,2) } else { '' }
+    $laborTraditionalDev       = if ($null -ne $Lines) { [math]::Round($Lines * $factorTraditionalDev,2) } else { '' }
+    $laborRegularPPDev         = if ($null -ne $Lines) { [math]::Round($Lines * $factorRegularPPDev,2) } else { '' }
+    $laborAdvancedLowComplexPP = if ($null -ne $Lines) { [math]::Round($Lines * $factorAdvancedLowComplexPP,2) } else { '' }
+    $laborAdvancedHighComplexPP= if ($null -ne $Lines) { [math]::Round($Lines * $factorAdvancedHighComplexPP,2) } else { '' }
+    $laborVibeCoderCopilot     = if ($null -ne $Lines) { [math]::Round($Lines * $factorVibeCoderCopilot,2) } else { '' }
+    $laborJavaPythonFed        = if ($null -ne $Lines) { [math]::Round($Lines * $factorJavaPythonFed,2) } else { '' }
+    $laborPowerPlatformHobbyist= if ($null -ne $Lines) { [math]::Round($Lines * $factorPowerPlatformHobbyist,2) } else { '' }
+
+    # Build Excel HYPERLINK formula for the FullPath column
+    $fullForLink = if ($full) { $full } else { '' }
+    $containingFolder = try {
+        if ($Item.PSIsContainer) {
+            if ($Item.Parent) { $Item.Parent.FullName } else { $Item.FullName }
+        } else {
+            $Item.DirectoryName
+        }
+    } catch { $fullForLink }
+    if ([string]::IsNullOrWhiteSpace($containingFolder)) { $containingFolder = $fullForLink }
+    $dispText = $fullForLink -replace '"','""'
+    $targetPath = $containingFolder -replace '"','""'
+    $fullHyperlink = if ([string]::IsNullOrEmpty($fullForLink)) { '' } else { [string]::Format('=HYPERLINK("{0}","{1}")', $targetPath, $dispText) }
 
     $obj = [ordered]@{
-        ItemType        = $ItemType
-        Name            = $name
-        Extension       = $extVal
-        FullPath        = $full
-        SizeBytes       = $sizeVal
-        CreatedTime     = $created
-        LastModifiedTime= $modified
-        Author          = $Author
-        IsReparsePoint  = [string](Test-ReparsePoint -Item $Item)
-        IsHidden        = [string]$($attrs.IsHidden)
-        IsReadOnly      = [string]$($attrs.IsReadOnly)
-        IsSystem        = [string]$($attrs.IsSystem)
-        IsArchive       = [string]$($attrs.IsArchive)
-        LinesOfText     = $linesVal
-        CharacterCount  = $charsVal
+        CreatedTime      = $created
+        LastModifiedTime = $modified
+        Author           = $Author
+        IsReparsePoint   = [string](Test-ReparsePoint -Item $Item)
+        IsHidden         = [string]$($attrs.IsHidden)
+        IsReadOnly       = [string]$($attrs.IsReadOnly)
+        IsSystem         = [string]$($attrs.IsSystem)
+        IsArchive        = [string]$($attrs.IsArchive)
+        FullPath         = $fullHyperlink
+        Name             = $name
+        ItemType         = $ItemType
+        Extension        = $extVal
+        SizeBytes        = $sizeVal
+        LinesOfText      = $linesVal
+        CharacterCount   = $charsVal
+        LaborHours_FederalEnvironmentDeptVA_PowerPlatformsDev = $laborFederalGovVA
+        LaborHours_TraditionalDev       = $laborTraditionalDev
+        LaborHours_RegularPowerPlatformDev = $laborRegularPPDev
+        LaborHours_AdvancedLowComplexityPowerPlatformDev = $laborAdvancedLowComplexPP
+        LaborHours_AdvancedHighComplexityPowerPlatformDev = $laborAdvancedHighComplexPP
+        LaborHours_VibeCoderCopilotAgent = $laborVibeCoderCopilot
+        LaborHours_RegularJavaPythonDev_FederalEnvironment = $laborJavaPythonFed
+        LaborHours_PowerPlatformHobbyist = $laborPowerPlatformHobbyist
     }
     return [PSCustomObject]$obj
 }
@@ -406,9 +491,10 @@ function Write-CsvWithBom {
     $encoding = New-Object System.Text.UTF8Encoding($true) # with BOM
     $sw = New-Object System.IO.StreamWriter($CsvPath, $false, $encoding)
     try {
-        # Write the single-cell summary as the first line
-        $sw.WriteLine($SummaryLine)
+        # Write header + rows first
         foreach ($line in $csvLines) { $sw.WriteLine($line) }
+        # Append the single-cell summary as the last line, under the data (including TOTALS)
+        $sw.WriteLine($SummaryLine)
     } finally { $sw.Dispose() }
 }
 
@@ -577,18 +663,19 @@ $summaryLine = Build-CsvSummaryLine -TotalItems $totalItems -TotalFiles $totalFi
 
 # Footer totals row (same columns)
 $totalsRow = [ordered]@{
-    ItemType         = 'TOTALS'
+    CreatedTime      = ''
+    LastModifiedTime = ''
+    Author           = ''
+    IsReparsePoint   = ''
+    IsHidden         = ''
+    IsReadOnly       = ''
+    IsSystem         = ''
+    IsArchive        = ''
+    FullPath         = ''
     Name             = "Items=$totalItems; Files=$totalFiles; Folders=$totalFolders; Shortcuts=$totalShortcuts; ReparsePoints=$totalReparse"
-    Extension        = 'null'
-    FullPath         = 'null'
+    ItemType         = 'TOTALS'
+    Extension        = ''
     SizeBytes        = [string]$sumSize
-    CreatedTime      = 'null'
-    LastModifiedTime = 'null'
-    Author           = 'null'
-    IsHidden         = 'null'
-    IsReadOnly       = 'null'
-    IsSystem         = 'null'
-    IsArchive        = 'null'
     LinesOfText      = [string]$sumLines
     CharacterCount   = [string]$sumChars
 }
