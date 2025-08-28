@@ -342,7 +342,7 @@ function Get-DefaultRepoPath {
         if (Test-Path $gitPath) { return $dir.FullName }
         $dir = $dir.Parent
     }
-    return $gitPath # $StartPath or $gitPath
+    return $StartPath # $StartPath or $gitPath
 }
 
 function Test-IsGitRepoPath {
@@ -372,7 +372,7 @@ function Get-ReportTypeInteractive {
     Write-Host "     3) Monthly" -ForegroundColor Gray
     Write-Host "     4) All time (default)" -ForegroundColor Gray
     Write-Host "     5) Custom (enter start and end dates)" -ForegroundColor Gray
-    $choice = Read-HostWithTimeout -Prompt "Enter choice [1-5] or name (Daily/Weekly/Monthly/AllTime/Custom)" -TimeoutSeconds 15 -Default "AllTime"
+    $choice = Read-HostWithTimeout -Prompt "Enter choice [1-5]" -TimeoutSeconds 15 -Default "AllTime"
 
     switch -Regex ($choice.Trim()) {
         '^(1|daily)$'    { return @{ ReportType = 'Daily';   StartDate = $null; EndDate = $null } }
@@ -466,12 +466,16 @@ function Get-GitCodeStatistics {
 
     $GitStats = @{
         CommitCount = 0
-        LinesAdded = 0
-        LinesRemoved = 0
+    # Partitioned counts (derived) used for effort estimates
+    LinesAdded = 0
+    LinesRemoved = 0
         LinesModified = 0
         FilesChanged = 0
         Commits = @()
         EstimatedWorkMinutes = 0
+    # Raw counts matching GitHub UI (additions/deletions)
+    LinesAddedRaw = 0
+    LinesRemovedRaw = 0
     }
 
     try {
@@ -583,10 +587,15 @@ function Get-GitCodeStatistics {
                 } else { $GitStats.Daily = @() }
 
                 # Preserve existing aggregate semantics: modifications = min(totalAdded, totalRemoved)
+                # Store raw values (GitHub-style additions/deletions) for display
                 $GitStats.FilesChanged = $totalFiles
+                $GitStats.LinesAddedRaw = $totalRawAdded
+                $GitStats.LinesRemovedRaw = $totalRawRemoved
+
+                # Partitioned values (avoid double-counting for estimates)
                 $GitStats.LinesModified = [Math]::Min($totalRawAdded, $totalRawRemoved)
-                $GitStats.LinesAdded = $totalRawAdded - $GitStats.LinesModified
-                $GitStats.LinesRemoved = $totalRawRemoved - $GitStats.LinesModified
+                $GitStats.LinesAdded    = $totalRawAdded   - $GitStats.LinesModified
+                $GitStats.LinesRemoved  = $totalRawRemoved - $GitStats.LinesModified
 
                 Write-Log "Git stats: +$($GitStats.LinesAdded) -$($GitStats.LinesRemoved) ~$($GitStats.LinesModified) across $($GitStats.FilesChanged) files" "INFO"
             }
@@ -828,9 +837,10 @@ function Format-MarkdownReport {
     # Code Development Statistics
     $Report += " ### Code Development Statistics`n"
     $Report += "   - **Git Commits:** $($Data.Git.CommitCount)`n"
-    $Report += "   - **Lines Added:** $($Data.Git.LinesAdded)`n"
-    $Report += "   - **Lines Removed:** $($Data.Git.LinesRemoved)`n"
-    $Report += "   - **Lines Modified:** $($Data.Git.LinesModified)`n"
+    # Display raw values to match GitHub commit UI; keep Modified as estimate
+    $Report += "   - **Lines Added:** $($Data.Git.LinesAddedRaw)`n"
+    $Report += "   - **Lines Removed:** $($Data.Git.LinesRemovedRaw)`n"
+    $Report += "   - **Lines Modified (est.):** $($Data.Git.LinesModified)`n"
     $Report += "   - **Files Changed:** $($Data.Git.FilesChanged)`n"
     $WorkHours = [Math]::Round($Data.Git.EstimatedWorkMinutes / 60, 1)
     $Report += "   - **Estimated Work Time:** $($Data.Git.EstimatedWorkMinutes) minutes ($WorkHours hours)`n`n"
@@ -840,10 +850,10 @@ function Format-MarkdownReport {
         $Report += "## Code Development Details`n`n"
         $Report += " ### Git Commit Summary`n"
         $Report += "   **Total Commits:** $($Data.Git.CommitCount)`n"
-        $Report += "   **Code Changes:**`n"
-        $Report += "      - Added: $($Data.Git.LinesAdded) lines`n"
-        $Report += "      - Removed: $($Data.Git.LinesRemoved) lines`n"
-        $Report += "      - Modified: $($Data.Git.LinesModified) lines`n"
+    $Report += "   **Code Changes (raw):**`n"
+    $Report += "      - Added: $($Data.Git.LinesAddedRaw) lines`n"
+    $Report += "      - Removed: $($Data.Git.LinesRemovedRaw) lines`n"
+    $Report += "      - Modified (est.): $($Data.Git.LinesModified) lines`n"
         $Report += "      - Files Affected: $($Data.Git.FilesChanged)`n`n"
 
         $Report += "### Work Effort Estimation`n"
@@ -947,8 +957,9 @@ function Export-Report {
                 return "<span class='delta-chip neutral'>= 0</span>"
             }
             $chipCommits = if ($dc) { New-DeltaChip $dc.CommitCount } else { '' }
-            $chipAdded = if ($dc) { New-DeltaChip $dc.LinesAdded } else { '' }
-            $chipRemoved = if ($dc) { New-DeltaChip $dc.LinesRemoved } else { '' }
+            # Deltas for raw values when baseline present; fall back if missing
+            $chipAdded = if ($dc -and $dc.PSObject.Properties.Match('LinesAddedRaw').Count -gt 0) { New-DeltaChip $dc.LinesAddedRaw } elseif ($dc) { New-DeltaChip $dc.LinesAdded } else { '' }
+            $chipRemoved = if ($dc -and $dc.PSObject.Properties.Match('LinesRemovedRaw').Count -gt 0) { New-DeltaChip $dc.LinesRemovedRaw } elseif ($dc) { New-DeltaChip $dc.LinesRemoved } else { '' }
             $chipModified = if ($dc) { New-DeltaChip $dc.LinesModified } else { '' }
             $chipFiles = if ($dc) { New-DeltaChip $dc.FilesChanged } else { '' }
             $chipEffort = if ($dc) { New-DeltaChip ([int]$dc.EstimatedWorkMinutes) } else { '' }
@@ -956,9 +967,9 @@ function Export-Report {
             $kpiHtml = @"
                                 <div class="kpis">
                                         <div class="kpi"><div class="kpi-label">Git Commits</div><div class="kpi-value">$($Data.Git.CommitCount) $chipCommits</div></div>
-                                        <div class="kpi"><div class="kpi-label">Lines Added</div><div class="kpi-value add">$($Data.Git.LinesAdded) $chipAdded</div></div>
-                                        <div class="kpi"><div class="kpi-label">Lines Removed</div><div class="kpi-value remove">$($Data.Git.LinesRemoved) $chipRemoved</div></div>
-                                        <div class="kpi"><div class="kpi-label">Lines Modified</div><div class="kpi-value mod">$($Data.Git.LinesModified) $chipModified</div></div>
+                                        <div class="kpi"><div class="kpi-label">Lines Added</div><div class="kpi-value add">$($Data.Git.LinesAddedRaw) $chipAdded</div></div>
+                                        <div class="kpi"><div class="kpi-label">Lines Removed</div><div class="kpi-value remove">$($Data.Git.LinesRemovedRaw) $chipRemoved</div></div>
+                                        <div class="kpi"><div class="kpi-label">Lines Modified (est.)</div><div class="kpi-value mod">$($Data.Git.LinesModified) $chipModified</div></div>
                                         <div class="kpi"><div class="kpi-label">Files Changed</div><div class="kpi-value">$($Data.Git.FilesChanged) $chipFiles</div></div>
                                         <div class="kpi"><div class="kpi-label">Est. Work</div><div class="kpi-value">$($Data.Git.EstimatedWorkMinutes) min $chipEffort<br><span class="sub">($workHours h)</span></div></div>
                                 </div>
