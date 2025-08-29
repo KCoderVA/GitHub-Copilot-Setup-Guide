@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Generate-ProductivityReport.ps1
-# VA Power Platform Productivity Reporting Script
-# Author: Kyle J. Coder - Edward Hines Jr. VA Hospital
-# Purpose: Generates comprehensive productivity reports from workspace activity with enhanced Git statistics
-
-
 # Validate-WorkspaceSetup.ps1
 # VA Power Platform Workspace Validation Script
 # Author: Kyle J. Coder - Edward Hines Jr. VA Hospital
@@ -35,6 +29,14 @@ $WorkspaceRoot = Split-Path $PSScriptRoot -Parent
 $ErrorCount = 0
 $WarningCount = 0
 $PassCount = 0
+
+# Collections for JSON report
+$MissingDirs = @()
+$MissingFiles = @()
+$InvalidJsonFiles = @()
+$WorkspaceFilesFound = @()
+$ScriptSyntaxErrors = @()
+$Dependencies = [ordered]@{ Git = $false; PAC = $false }
 
 Write-Host "VA Power Platform Workspace Validation" -ForegroundColor Green
 Write-Host "=======================================" -ForegroundColor Green
@@ -55,6 +57,7 @@ foreach ($Dir in $RequiredDirs) {
     } else {
         Write-Host "   FAIL: $Dir (Missing)" -ForegroundColor Red
         $ErrorCount++
+    $MissingDirs += $Dir
 
         if ($FixIssues) {
             try {
@@ -74,10 +77,8 @@ Write-Host "`nChecking required files..." -ForegroundColor Yellow
 
 $RequiredFiles = @(
     'README.md',
-    'scripts\Generate-ProductivityReport.ps1',
-    'scripts\Clean-Workspace.ps1',
-    'scripts\Unpack-PowerApp.ps1',
-    'scripts\Pack-PowerApp.ps1'
+    'copilot-instructions\Generate-ProductivityReport.ps1',
+    'copilot-instructions\Clean-Workspace.ps1'
 )
 
 foreach ($File in $RequiredFiles) {
@@ -88,6 +89,7 @@ foreach ($File in $RequiredFiles) {
     } else {
         Write-Host "   FAIL: $File (Missing)" -ForegroundColor Red
         $ErrorCount++
+    $MissingFiles += $File
     }
 }
 
@@ -110,14 +112,49 @@ foreach ($File in $VSCodeFiles) {
         } catch {
             Write-Host "   WARN: $File (Invalid JSON)" -ForegroundColor Yellow
             $WarningCount++
+            $InvalidJsonFiles += $File
         }
     } else {
         Write-Host "   FAIL: $File (Missing)" -ForegroundColor Red
         $ErrorCount++
+        $MissingFiles += $File
     }
 }
 
-# 4. Check Workspace File
+# 4. Check .github instructions file
+Write-Host "`nChecking Copilot instructions (.github) ..." -ForegroundColor Yellow
+$GithubDir = Join-Path $WorkspaceRoot '.github'
+$InstructionsPath = Join-Path $GithubDir 'copilot-instructions.md'
+if (Test-Path $InstructionsPath) {
+    Write-Host "   PASS: .github\\copilot-instructions.md present" -ForegroundColor Green
+    $PassCount++
+} else {
+    Write-Host "   FAIL: .github\\copilot-instructions.md missing" -ForegroundColor Red
+    $ErrorCount++
+    $MissingFiles += ".github\\copilot-instructions.md"
+    $InstallerBat = Join-Path $WorkspaceRoot 'copilot-instructions\Install-Copilot-Instructions.bat'
+    if ($FixIssues -and (Test-Path $InstallerBat)) {
+        Write-Host "   FIX: Running installer to create/update instructions..." -ForegroundColor Cyan
+        try {
+            $p = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', '"' + $InstallerBat + '"' -Wait -PassThru -WindowStyle Hidden
+            if ($p.ExitCode -eq 0 -and (Test-Path $InstructionsPath)) {
+                Write-Host "   FIXED: Instructions installed" -ForegroundColor Green
+                $ErrorCount--
+                $PassCount++
+            } else {
+                Write-Host "   WARN: Installer exited with code $($p.ExitCode)." -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Host "   WARN: Failed to run installer: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    } else {
+        if (-not (Test-Path $InstallerBat)) {
+            Write-Host "   HINT: Run copilot-instructions\\Install-Copilot-Instructions.bat to set this up." -ForegroundColor Gray
+        }
+    }
+}
+
+# 5. Check Workspace File
 Write-Host "`nChecking workspace file..." -ForegroundColor Yellow
 
 $WorkspaceFiles = Get-ChildItem -Path $WorkspaceRoot -Filter "*.code-workspace" -ErrorAction SilentlyContinue
@@ -129,12 +166,13 @@ if ($WorkspaceFiles.Count -gt 0) {
         Write-Host "   WARN: Multiple workspace files found" -ForegroundColor Yellow
         $WarningCount++
     }
+    $WorkspaceFilesFound = $WorkspaceFiles | ForEach-Object { $_.Name }
 } else {
     Write-Host "   FAIL: No workspace file found" -ForegroundColor Red
     $ErrorCount++
 }
 
-# 5. Check External Dependencies
+# 6. Check External Dependencies
 Write-Host "`nChecking external dependencies..." -ForegroundColor Yellow
 
 # Check Git
@@ -143,13 +181,16 @@ try {
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   PASS: Git installed" -ForegroundColor Green
         $PassCount++
+        $Dependencies.Git = $true
     } else {
         Write-Host "   WARN: Git not found" -ForegroundColor Yellow
         $WarningCount++
+        $Dependencies.Git = $false
     }
 } catch {
     Write-Host "   WARN: Git not found" -ForegroundColor Yellow
     $WarningCount++
+    $Dependencies.Git = $false
 }
 
 # Check Power Platform CLI
@@ -158,16 +199,19 @@ try {
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   PASS: Power Platform CLI installed" -ForegroundColor Green
         $PassCount++
+        $Dependencies.PAC = $true
     } else {
         Write-Host "   WARN: Power Platform CLI not found" -ForegroundColor Yellow
         $WarningCount++
+        $Dependencies.PAC = $false
     }
 } catch {
     Write-Host "   WARN: Power Platform CLI not found" -ForegroundColor Yellow
     $WarningCount++
+    $Dependencies.PAC = $false
 }
 
-# 6. Check PowerShell Scripts Syntax
+# 7. Check PowerShell Scripts Syntax
 Write-Host "`nValidating script syntax..." -ForegroundColor Yellow
 
 $ScriptFiles = Get-ChildItem -Path (Join-Path $WorkspaceRoot "scripts") -Filter "*.ps1" -ErrorAction SilentlyContinue
@@ -183,6 +227,7 @@ foreach ($Script in $ScriptFiles) {
         if ($Detailed) {
             Write-Host "      Error: $($_.Exception.Message)" -ForegroundColor Gray
         }
+    $ScriptSyntaxErrors += [ordered]@{ File = $Script.Name; Message = $_.Exception.Message }
     }
 }
 
@@ -209,7 +254,7 @@ Write-Host "   Warnings: $WarningCount" -ForegroundColor Yellow
 Write-Host "   Errors: $ErrorCount" -ForegroundColor Red
 Write-Host "   Total Checks: $TotalChecks" -ForegroundColor Cyan
 
-# Save report if requested
+# Save report if requested (Markdown)
 if ($OutputPath) {
     $ReportContent = @"
 # VA Power Platform Workspace Validation Report
@@ -230,7 +275,7 @@ elseif ($ErrorCount -eq 0) { "GOOD - Minor warnings found" }
 else { "ISSUES FOUND - Errors require attention" })
 
 ---
-Generated by VA Power Platform Workspace Template
+Generated by VA Power Platform Workspace Template (updated Aug 2025)
 "@
 
     try {
@@ -238,6 +283,49 @@ Generated by VA Power Platform Workspace Template
         Write-Host "`nReport saved: $OutputPath" -ForegroundColor Cyan
     } catch {
         Write-Host "`nFailed to save report: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
+# Always produce a JSON report to a temp file if errors were found, then trigger guidance generator
+if ($ErrorCount -gt 0) {
+    try {
+        $ts = (Get-Date).ToString('yyyyMMdd-HHmmss')
+        $tempJson = Join-Path $env:TEMP "workspace-validation-$ts.json"
+        $jsonReport = [ordered]@{
+            GeneratedUtc = (Get-Date).ToUniversalTime().ToString('o')
+            Root         = $WorkspaceRoot
+            Summary      = [ordered]@{ Passed = $PassCount; Warnings = $WarningCount; Errors = $ErrorCount; TotalChecks = $TotalChecks }
+            Findings     = [ordered]@{
+                MissingDirs       = $MissingDirs
+                MissingFiles      = $MissingFiles
+                InvalidJsonFiles  = $InvalidJsonFiles
+                WorkspaceFiles    = $WorkspaceFilesFound
+                Dependencies      = $Dependencies
+                ScriptSyntaxErrors= $ScriptSyntaxErrors
+                Workspace         = [ordered]@{
+                    HasWorkspaceFile     = ($WorkspaceFilesFound.Count -gt 0)
+                    MultipleWorkspaceFiles= ($WorkspaceFilesFound.Count -gt 1)
+                }
+            }
+        }
+        $jsonReport | ConvertTo-Json -Depth 8 | Set-Content -Path $tempJson -Encoding UTF8
+        Write-Host "`nJSON report created: $tempJson" -ForegroundColor Cyan
+
+    # Create the educational HTML in the workspace root (per requirements)
+    $outHtml = Join-Path $WorkspaceRoot "Workspace-Guidance-$ts.html"
+
+        $guidanceScript = Join-Path $PSScriptRoot 'Generate-WorkspaceGuidance.ps1'
+        if (Test-Path $guidanceScript) {
+            try {
+                & $guidanceScript -JsonReport $tempJson -OutputHtml $outHtml -Open -DeleteJson
+            } catch {
+                Write-Host "WARN: Failed to generate guidance: $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "HINT: Guidance script not found: $guidanceScript" -ForegroundColor Gray
+        }
+    } catch {
+        Write-Host "WARN: Failed to create JSON report: $($_.Exception.Message)" -ForegroundColor Yellow
     }
 }
 

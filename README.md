@@ -36,21 +36,56 @@ Interactive Reveal.js slide deck and printable guide to help VA employees (clini
 3. Visit: `https://<your-username>.github.io/GitHub-Copilot-Setup-Guide/`.
 4. Open `index.html` for the interactive version. For printing/distribution, use the PDF at `docs/GitHub Copilot Setup Guide (for VA Employees).pdf`.
 
+## Local Workspace Setup (High Priority)
+
+Run these steps in the workspace where you actually do your work so Copilot follows your local rules.
+
+1) Download or clone this repository.
+2) Open your own active VS Code workspace (the project you want Copilot to obey).
+3) Run `copilot-instructions/Install-Copilot-Instructions.bat` from this repo in that workspace.
+	- Installs/updates `.github/copilot-instructions.md` in your workspace
+	- Opens VS Code (deep link) and Copilot Chat
+	- Copies a ready-to-paste chat prompt to your clipboard
+4) Run `copilot-instructions/Validate-WorkspaceSetup.ps1` to check for standard folders/files and common tooling.
+	- Use `-Detailed` for extra checks; `-FixIssues` can create missing directories safely
+	- The validator emits a JSON report and generates a collapsible `Workspace-Guidance-<timestamp>.html` in your workspace root with step-by-step fixes
+	- Add `-Open` to launch the guidance in your browser and `-DeleteJson` to remove the JSON after generating the HTML
+5) (Recommended) Bring over the rest of the automation:
+	- Copy the entire `copilot-instructions/` folder into your workspace root, or copy specific scripts you need
+	- Copy the `prompts/` folder for role/domain starter prompts
+	- Copy any templates from `docs/` you want to standardize locally
+6) (Optional) Import tasks for one-click usage: copy `copilot-instructions/tasks.json` into `.vscode/tasks.json` in your workspace.
+
+Why this matters:
+- Ensures deterministic Copilot behavior by giving it a single, discoverable rules file in `.github`
+- Reduces setup time for teammates; gives everyone the same guardrails and shortcuts
+- Validates a healthy workspace structure quickly and non-destructively
+
 ## Printable Version
 
 Use the "Printable Version" button in the top-right of `index.html` to open the PDF (`docs/GitHub Copilot Setup Guide (for VA Employees).pdf`).
 
-## PowerShell Automation Scripts
-Located in `copilot-instructions/`:
-- `Add-LicenseHeaders.ps1` – Injects standardized Apache 2.0 headers
+## Automation & Scripts
+All automation lives under `copilot-instructions/`.
+
+Key scripts:
+- `Install-Copilot-Instructions.bat` – Creates/updates `.github/copilot-instructions.md`, opens VS Code/Copilot Chat, and copies a ready-to-paste prompt
+- `Generate-ProductivityReport.ps1` – Summarizes effort & repository metrics (HTML/MD/CSV/JSON)
+- `Recursive-Directory-Analysis.ps1` – Inventories a directory tree and exports a CSV summary
 - `Clean-Workspace.ps1` – Multi-level safe cleanup
-- `Generate-ProductivityReport.ps1` – Summarizes effort & repository metrics
 - `Validate-Syntax.ps1` – Basic syntax validation for config/script files
-- `Validate-WorkspaceSetup.ps1` – Environment readiness & auto-fixes
-- `tasks.json` – VS Code tasks to wire common actions
+- `Validate-WorkspaceSetup.ps1` – Environment readiness & optional auto-fixes
+- `Generate-WorkspaceGuidance.ps1` – Reads the validator's JSON report and produces a collapsible, beginner‑friendly HTML with expanded intro/footer, resource links, and only the relevant fix blocks; can auto‑open and optionally delete the JSON
+- `tasks.json` – VS Code tasks for common actions
 
 ## Prompts & Instruction Files
-Use the role-based prompt templates in `prompts/` to seed Copilot context. Place / adapt `copilot-instructions.md` and `COPILOT_BRIEFING.md` in active workspaces for persistent personalization.
+Use the role-based prompt templates in `prompts/` to seed Copilot context. The workspace-level instructions file should live at `.github/copilot-instructions.md`.
+
+Install/update steps:
+- Double‑click `copilot-instructions/Install-Copilot-Instructions.bat` (or run the VS Code task)
+- Then run `copilot-instructions/Validate-WorkspaceSetup.ps1` to verify structure and dependencies
+
+Next, copy the `prompts/` folder and any templates you want into your workspace so your team has them locally.
 
 ## Development / Contribution
 Pull requests welcome for:

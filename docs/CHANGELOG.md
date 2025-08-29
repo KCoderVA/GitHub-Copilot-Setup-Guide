@@ -56,6 +56,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.0.
 
 ## [Unreleased]
 ### Planned
+### Added
+- Batch installer `copilot-instructions/Install-Copilot-Instructions.bat` that installs/updates `.github/copilot-instructions.md`, deep-links VS Code/Copilot Chat, and places a suggested prompt on the clipboard.
+- VS Code tasks (`copilot-instructions/tasks.json`) updated to run the installer, productivity report, recursive directory analysis, cleanup, and validations directly.
+
+### Changed
+- `Validate-WorkspaceSetup.ps1` now checks for `.github/copilot-instructions.md` and can auto-run the installer with `-FixIssues`.
+- Documentation (`README.md`, `docs/README.md`, `index.html`) updated to reference the new installer workflow and script locations.
 - Add screenshot thumbnail for sharing (update OpenGraph image).
 - Introduce CHANGELOG automation script.
 - Add Lighthouse/axe accessibility summary.

@@ -24,285 +24,84 @@ limitations under the License.
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Generate Productivity Report",
+            "label": "Install/Update Copilot Instructions (.github)",
             "type": "shell",
-            "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Generate-ProductivityReport.ps1"
-            ],
+            "command": "cmd.exe",
+            "args": ["/c", "\"${workspaceFolder}\\copilot-instructions\\Install-Copilot-Instructions.bat\""] ,
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
+            "presentation": { "echo": true, "reveal": "always", "focus": false, "panel": "shared" },
+            "problemMatcher": [],
+            "detail": "Creates or updates .github\\copilot-instructions.md, opens VS Code/Copilot Chat, and copies a suggested prompt"
+        },
+        {
+            "label": "Generate Productivity Report",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/copilot-instructions/Generate-ProductivityReport.ps1","-NonInteractive"],
+            "group": "build",
+            "presentation": { "echo": true, "reveal": "always", "focus": false, "panel": "shared" },
             "problemMatcher": [],
             "detail": "Creates supervisor-ready productivity and progress reports"
         },
         {
-            "label": "Update Version & Commit",
+            "label": "Recursive Directory Analysis",
             "type": "shell",
             "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Update-VersionAndCommit.ps1",
-                "-CommitMessage",
-                "${input:commitMessage}"
-            ],
+            "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/copilot-instructions/Recursive-Directory-Analysis.ps1"],
             "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
+            "presentation": { "echo": true, "reveal": "always", "focus": false, "panel": "shared" },
             "problemMatcher": [],
-            "detail": "Automatically updates version number and commits changes with proper VA formatting"
+            "detail": "Recursively inventories a directory and writes a CSV summary"
         },
         {
-            "label": "Clean Workspace (Archive TEMP_ files)",
+            "label": "Clean Workspace",
             "type": "shell",
             "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Clean-Workspace.ps1"
-            ],
+            "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/copilot-instructions/Clean-Workspace.ps1"],
             "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
+            "presentation": { "echo": true, "reveal": "always", "focus": false, "panel": "shared" },
             "problemMatcher": [],
-            "detail": "Intelligently moves temporary and duplicate files to archive folder"
-        },
-        {
-            "label": "Unpack PowerApp (.msapp)",
-            "type": "shell",
-            "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Unpack-PowerApp.ps1",
-                "-AppPath",
-                "${input:msappFile}"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Unpacks a .msapp file into individual component files for Git version control"
-        },
-        {
-            "label": "Pack PowerApp (Create .msapp)",
-            "type": "shell",
-            "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Pack-PowerApp.ps1",
-                "-AppName",
-                "${input:appName}"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Packs unpacked PowerApp components back into .msapp file for deployment"
-        },
-        {
-            "label": "Export SQL Results to CSV",
-            "type": "shell",
-            "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Export-SQLQuery.ps1",
-                "-QueryFile",
-                "${input:sqlFile}"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Executes SQL query and exports results to CSV for testing"
-        },
-        {
-            "label": "Add License Headers",
-            "type": "shell",
-            "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Add-LicenseHeaders.ps1"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Automatically adds VA-compliant license headers to source code files"
-        },
-        {
-            "label": "Organize Files",
-            "type": "shell",
-            "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Organize-Files.ps1"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Organizes workspace files into appropriate subfolders based on type and content"
+            "detail": "Safely cleans temporary files, logs, and outdated items"
         },
         {
             "label": "Validate Syntax",
             "type": "shell",
             "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Validate-Syntax.ps1"
-            ],
+            "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/copilot-instructions/Validate-Syntax.ps1"],
             "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
+            "presentation": { "echo": true, "reveal": "always", "focus": false, "panel": "shared" },
             "problemMatcher": [],
-            "detail": "Validates syntax for YAML, JSON, XML, and MSAPP configuration files"
+            "detail": "Validates syntax for YAML, JSON, XML, and script files"
         },
         {
             "label": "Validate Workspace Setup",
             "type": "shell",
             "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Validate-WorkspaceSetup.ps1"
-            ],
+            "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/copilot-instructions/Validate-WorkspaceSetup.ps1","-Detailed"],
             "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
+            "presentation": { "echo": true, "reveal": "always", "focus": false, "panel": "shared" },
             "problemMatcher": [],
-            "detail": "Validates workspace structure, dependencies, and configuration for VA compliance"
+            "detail": "Validates workspace structure and key automation availability"
         },
         {
-            "label": "Track File Versions - List",
+            "label": "Add License Headers",
             "type": "shell",
             "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Track-FileVersions.ps1",
-                "-Action",
-                "List"
-            ],
+            "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/copilot-instructions/Add-LicenseHeaders.ps1"],
             "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
+            "presentation": { "echo": true, "reveal": "always", "focus": false, "panel": "shared" },
             "problemMatcher": [],
-            "detail": "Shows version tracking status for all tracked files"
-        },
-        {
-            "label": "Track File Versions - Backup Current File",
-            "type": "shell",
-            "command": "powershell.exe",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "${workspaceFolder}/scripts/Track-FileVersions.ps1",
-                "-Action",
-                "Track",
-                "-FilePath",
-                "${file}"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Creates a backup version of the currently open file"
+            "detail": "Adds Apache 2.0 headers to source files"
         }
     ],
     "inputs": [
         {
-            "id": "msappFile",
-            "description": "Select .msapp file to unpack",
-            "type": "pickString",
-            "options": []
-        },
-        {
-            "id": "appName",
-            "description": "Enter PowerApp name",
-            "type": "promptString"
-        },
-        {
             "id": "commitMessage",
             "description": "Enter commit message",
             "type": "promptString"
-        },
-        {
-            "id": "sqlFile",
-            "description": "Select SQL file to execute",
-            "type": "pickString",
-            "options": []
         }
     ]
 }

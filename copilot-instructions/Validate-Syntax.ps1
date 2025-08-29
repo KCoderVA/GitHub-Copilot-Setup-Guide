@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Generate-ProductivityReport.ps1
-# VA Power Platform Productivity Reporting Script
-# Author: Kyle J. Coder - Edward Hines Jr. VA Hospital
-# Purpose: Generates comprehensive productivity reports from workspace activity with enhanced Git statistics
-
-
 <#
 .SYNOPSIS
     Validates syntax for configuration files (YAML, JSON, XML, MSAPP)

@@ -1,3 +1,4 @@
+# (cleaned stray HTML fragment)
 # Copyright 2025 Kyle J. Coder
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -184,9 +185,16 @@ param(
     [Parameter(Mandatory=$false)]
     [switch]$Quiet,
     [Parameter(Mandatory=$false)]
-    [int]$MaxCommits = 10,
+    [int]$MaxCommits = 99,
     [Parameter(Mandatory=$false)]
-    [string]$BaselineJson = ""
+    [string]$BaselineJson = "",
+    # Filesystem snapshot filter controls (opt-in to include normally-excluded areas)
+    [Parameter(Mandatory=$false)]
+    [switch]$FSIncludeGit,
+    [Parameter(Mandatory=$false)]
+    [switch]$FSIncludeCompressed,
+    [Parameter(Mandatory=$false)]
+    [switch]$FSIncludeArchiveTemp
 )
 
 # Error handling and logging
@@ -647,6 +655,238 @@ function Get-WorkEstimate {
     return [Math]::Round($EstimatedMinutes, 0)
 }
 
+<#
+    Filesystem snapshot helpers (lightweight port of Recursive-Directory-Analysis.ps1)
+    - Non-interactive, no prompts, no CSV; returns aggregate counts for the repo root.
+    - Excludes .git, common compressed archives, and archive/temp folders by default.
+#>
+function Test-FSReparsePoint {
+    param([System.IO.FileSystemInfo]$Item)
+    try { return (($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) } catch { return $false }
+}
+
+function Test-FSIsBinaryFile {
+    param([string]$FullPath)
+    try {
+        $fs = [System.IO.File]::Open($FullPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        try {
+            $buf = New-Object byte[] 8192
+            $read = $fs.Read($buf, 0, $buf.Length)
+            for ($i=0; $i -lt $read; $i++) { if ($buf[$i] -eq 0) { return $true } }
+            return $false
+        } finally { $fs.Dispose() }
+    } catch { return $true }
+}
+
+function Measure-FSTextFile {
+    param([string]$FullPath)
+    $totalChars = 0; $totalLines = 0; $anyChars = $false; $lastWasCR = $false
+    try {
+        $fs = [System.IO.File]::Open($FullPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        try {
+            $sr = New-Object System.IO.StreamReader($fs, $true)
+            try {
+                $buffer = New-Object char[] 4096
+                while (($count = $sr.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                    for ($i = 0; $i -lt $count; $i++) {
+                        $c = $buffer[$i]; $anyChars = $true; $totalChars++
+                        if ($c -eq "`n") { $totalLines++; $lastWasCR = $false }
+                        elseif ($c -eq "`r") { $lastWasCR = $true }
+                        else { if ($lastWasCR) { $totalLines++; $lastWasCR = $false } }
+                    }
+                }
+                if ($lastWasCR) { $totalLines++ }
+                if (-not $anyChars) { $totalLines = 0 }
+                elseif ($totalLines -eq 0) { $totalLines = 1 }
+            } finally { $sr.Dispose() }
+        } finally { $fs.Dispose() }
+    } catch { return @{ Lines = $null; Chars = $null } }
+    return @{ Lines = $totalLines; Chars = $totalChars }
+}
+
+function Get-FilesystemSnapshot {
+    param(
+        [Parameter(Mandatory=$true)][string]$RootPath,
+        [bool]$ExcludeGit = $true,
+        [bool]$ExcludeCompressed = $true,
+    [bool]$ExcludeArchiveOrTemp = $true
+    )
+    $snapshot = [ordered]@{
+        Root = $RootPath
+        TotalItems = 0
+        TotalFiles = 0
+        TotalFolders = 0
+        TotalShortcuts = 0
+        TotalReparse = 0
+        SumLines = 0
+        SumChars = 0
+        SumSizeBytes = 0
+        LastModified = $null
+        TopExtensions = @()
+    Files = @()
+        Filters = [ordered]@{ ExcludeGit=$ExcludeGit; ExcludeCompressed=$ExcludeCompressed; ExcludeArchiveOrTemp=$ExcludeArchiveOrTemp }
+    }
+
+    try {
+        if (-not (Test-Path -LiteralPath $RootPath -PathType Container)) { return $snapshot }
+    $root = Get-Item -LiteralPath $RootPath -Force
+        $stack = New-Object System.Collections.Stack
+        $items = New-Object System.Collections.Generic.List[System.IO.FileSystemInfo]
+        $items.Add($root) | Out-Null
+        $stack.Push($root)
+
+    $scanCount = 0
+    $scanProgressId = 42
+    # spinner + throttle for smoother, visible updates
+    $scanSpinChars = @('|','/','-','\')
+    $scanSpinIdx = 0
+    $scanThrottleMs = 150
+    $lastScanTick = [Environment]::TickCount
+    if (-not $Quiet) { try { Write-Progress -Id $scanProgressId -Activity "Scanning directories |" -Status "Starting..." -PercentComplete 0 } catch {} }
+    while ($stack.Count -gt 0) {
+            $dir = $stack.Pop()
+            try { $children = Get-ChildItem -LiteralPath $dir.FullName -Force -ErrorAction Stop } catch { continue }
+            foreach ($child in $children) {
+                # Apply path-based excludes
+                $path = $null; try { $path = $child.FullName } catch {}
+                $name = $null; try { $name = $child.Name } catch {}
+                if ($ExcludeGit) {
+                    if ($path -and ($path -match "(?i)(\\|/)\.git(\\/|$|\\)")) { continue }
+                    if ($name -and ($name -match '^(?i)\.git$')) { continue }
+                }
+                if ($ExcludeArchiveOrTemp) {
+                    if ($path -and ($path -match '(?i)(\\|/)(archive|archives|archived|temp|tmp)(\\|/)')) { continue }
+                    if ($name -and ($name -match '(?i)^(archive|archives|archived|temp|tmp)$')) { continue }
+                }
+                $items.Add($child) | Out-Null
+                $scanCount++
+                if (-not $Quiet) {
+                    $nowTick = [Environment]::TickCount
+                    if ((($nowTick - $lastScanTick) -ge $scanThrottleMs) -or ($scanCount % 100 -eq 0)) {
+                        $spin = $scanSpinChars[$scanSpinIdx % $scanSpinChars.Length]
+                        $scanSpinIdx++
+                        try { Write-Progress -Id $scanProgressId -Activity ("Scanning directories {0}" -f $spin) -Status ("Found {0} items..." -f $scanCount) -PercentComplete 10 } catch {}
+                        $lastScanTick = $nowTick
+                    }
+                }
+                if ($child.PSIsContainer) {
+                    if (Test-FSReparsePoint -Item $child) { continue }
+                    $stack.Push($child)
+                }
+            }
+        }
+
+        # Final filter set for reporting
+        $reportItems = @()
+        foreach ($it in $items) {
+            $skip = $false
+            try {
+                if ($ExcludeGit) {
+                    if ($it.FullName -match "(?i)(\\|/)\.git(\\/|$|\\)") { $skip = $true }
+                    if ($it.Name -match '^(?i)\.git$') { $skip = $true }
+                }
+                if ($ExcludeArchiveOrTemp) {
+                    if ($it.FullName -match '(?i)(\\|/)(archive|archives|archived|temp|tmp)(\\|/)') { $skip = $true }
+                    if ($it.Name -match '(?i)^(archive|archives|archived|temp|tmp)$') { $skip = $true }
+                }
+                if (-not $skip -and $ExcludeCompressed -and -not $it.PSIsContainer) {
+                    $ext = ''; try { $ext = $it.Extension.ToLowerInvariant() } catch {}
+                    $compressedExts = @('.zip','.7z','.rar','.gz','.tar','.bz2','.xz','.zipx')
+                    if ($compressedExts -contains $ext) { $skip = $true }
+                }
+            } catch {}
+            if (-not $skip) { $reportItems += ,$it }
+        }
+
+    $snapshot.TotalItems = $reportItems.Count
+    if (-not $Quiet) { try { Write-Progress -Id $scanProgressId -Activity "Scanning directories" -Status ("Enumerated {0} items" -f $snapshot.TotalItems) -PercentComplete 20 } catch {} }
+    $files   = @($reportItems | Where-Object { -not $_.PSIsContainer -and -not (Test-FSReparsePoint -Item $_) -and ($_.Extension.ToLowerInvariant() -ne '.lnk') })
+    $folders = @($reportItems | Where-Object { $_.PSIsContainer -and -not (Test-FSReparsePoint -Item $_) })
+    $shorts  = @($reportItems | Where-Object { -not $_.PSIsContainer -and ($_.Extension.ToLowerInvariant() -eq '.lnk') })
+    $reparse = @($reportItems | Where-Object { Test-FSReparsePoint -Item $_ })
+        $snapshot.TotalFiles    = $files.Count
+        $snapshot.TotalFolders  = $folders.Count
+        $snapshot.TotalShortcuts= $shorts.Count
+        $snapshot.TotalReparse  = $reparse.Count
+
+        # Top extensions (files only)
+        $extGroups = $files | ForEach-Object { $_.Extension.ToLowerInvariant() } | Group-Object | Sort-Object Count -Descending | Select-Object -First 8
+        $topExt = @()
+        foreach ($g in $extGroups) {
+            $ename = if ($g.Name) { $g.Name } else { '(none)' }
+            $topExt += [pscustomobject]@{ Extension=$ename; Count=$g.Count }
+        }
+        $snapshot.TopExtensions = $topExt
+
+        # Size, lines, chars, last-modified
+        [int64]$sumSize = 0; [int64]$sumChars = 0; [int64]$sumLines = 0
+        $fileRows = New-Object System.Collections.Generic.List[object]
+        $rootResolved = $RootPath
+        try { $rootResolved = (Resolve-Path -LiteralPath $RootPath -ErrorAction Stop).Path } catch {}
+        $lastMod = $null
+    $processed = 0
+    $totalFiles = [math]::Max(1, $files.Count)
+    $procProgressId = 43
+    # spinner + throttle for file processing progress
+    $procSpinChars = @('|','/','-','\')
+    $procSpinIdx = 0
+    $procThrottleMs = 150
+    $lastProcTick = [Environment]::TickCount
+    if (-not $Quiet) { try { Write-Progress -Id $procProgressId -Activity "Analyzing files |" -Status "Measuring text files..." -PercentComplete 0 } catch {} }
+    foreach ($f in $files) {
+            try { $sumSize += [int64]$f.Length } catch {}
+            try { if ($null -eq $lastMod -or $f.LastWriteTime -gt $lastMod) { $lastMod = $f.LastWriteTime } } catch {}
+            # Text metrics for non-binary only
+            $isBin = $false
+            try { $isBin = Test-FSIsBinaryFile -FullPath $f.FullName } catch { $isBin = $true }
+            if (-not $isBin) {
+                $m = Measure-FSTextFile -FullPath $f.FullName
+                if ($m -and $null -ne $m.Lines -and $null -ne $m.Chars) {
+                    $sumLines += [int64]$m.Lines
+                    $sumChars += [int64]$m.Chars
+                    # Add per-file row for reporting
+                    $rel = $f.FullName
+                    try {
+                        if ($rootResolved -and $f.FullName.StartsWith($rootResolved, [System.StringComparison]::OrdinalIgnoreCase)) {
+                            $rel = $f.FullName.Substring($rootResolved.Length).TrimStart('\\','/')
+                        }
+                    } catch {}
+                    $fileRows.Add([pscustomobject]@{
+                        Path = $f.FullName
+                        RelativePath = $rel
+                        Name = $f.Name
+                        SizeBytes = [int64]$f.Length
+                        Lines = [int64]$m.Lines
+                        Chars = [int64]$m.Chars
+                        LastWriteTime = $f.LastWriteTime
+                    }) | Out-Null
+                }
+            }
+            $processed++
+            if (-not $Quiet) {
+                $pct = [int][math]::Min(100, [math]::Round(($processed / $totalFiles) * 100))
+                $nowTick = [Environment]::TickCount
+                if ((($nowTick - $lastProcTick) -ge $procThrottleMs) -or ($processed -eq $totalFiles) -or ($processed % 20 -eq 0)) {
+                    $spin = $procSpinChars[$procSpinIdx % $procSpinChars.Length]
+                    $procSpinIdx++
+                    try { Write-Progress -Id $procProgressId -Activity ("Analyzing files {0}" -f $spin) -Status ("Processed {0}/{1} files" -f $processed, $totalFiles) -PercentComplete $pct } catch {}
+                    $lastProcTick = $nowTick
+                }
+            }
+        }
+        if (-not $Quiet) { try { Write-Progress -Id $procProgressId -Activity "Analyzing files" -Completed } catch {} }
+        if (-not $Quiet) { try { Write-Progress -Id $scanProgressId -Activity "Scanning directories" -Completed } catch {} }
+        $snapshot.SumSizeBytes = $sumSize
+        $snapshot.SumChars = $sumChars
+        $snapshot.SumLines = $sumLines
+        $snapshot.LastModified = $lastMod
+        $snapshot.Files = $fileRows
+    } catch {
+        Write-Log "Filesystem snapshot failed: $($_.Exception.Message)" "WARN"
+    }
+
+    return [pscustomobject]$snapshot
+}
 function Get-ProductivityData {
     param($DateRange, [string]$RepoPath, [string]$GitRef = 'HEAD', [switch]$AllBranches)
 
@@ -796,6 +1036,17 @@ function Get-ProductivityData {
         Write-Log "Error analyzing Git statistics: $($_.Exception.Message)" "WARN"
     }
 
+    # Filesystem snapshot (repo root)
+    try {
+        if ($RepoPath -and (Test-Path -LiteralPath $RepoPath -PathType Container)) {
+            Write-Log "Analyzing filesystem snapshot for: $RepoPath" "INFO"
+            $fs = Get-FilesystemSnapshot -RootPath $RepoPath -ExcludeGit:(!$FSIncludeGit) -ExcludeCompressed:(!$FSIncludeCompressed) -ExcludeArchiveOrTemp:(!$FSIncludeArchiveTemp)
+            $Data.Filesystem = $fs
+        }
+    } catch {
+        Write-Log "Filesystem snapshot failed: $($_.Exception.Message)" "WARN"
+    }
+
     # Parse productivity logs (existing functionality)
     try {
         $ProductivityFiles = Get-ChildItem -Path $LogsPath -Filter "productivity-log-*.md" -ErrorAction SilentlyContinue
@@ -885,6 +1136,26 @@ function Format-MarkdownReport {
     $Report += "-    **Code Quality:** Structured commit messages and version tagging`n"
     $Report += "-    **Workspace Organization:** Proper Git workflow and documentation`n`n"
 
+    # Filesystem Snapshot
+    if ($null -ne $Data.Filesystem) {
+        $fs = $Data.Filesystem
+        $sizeMB = [Math]::Round(($fs.SumSizeBytes / 1MB), 2)
+        $lm = if ($fs.LastModified) { $fs.LastModified.ToString('yyyy-MM-dd HH:mm:ss') } else { 'n/a' }
+        $Report += "## Filesystem Snapshot`n`n"
+        $Report += "-    **Root:** $($fs.Root)`n"
+        $Report += "-    **Items:** $($fs.TotalItems) (Files=$($fs.TotalFiles), Folders=$($fs.TotalFolders), Shortcuts=$($fs.TotalShortcuts), ReparsePoints=$($fs.TotalReparse))`n"
+        $Report += "-    **Text Lines (sum):** $($fs.SumLines)`n"
+        $Report += "-    **Characters (sum):** $($fs.SumChars)`n"
+        $Report += "-    **Size:** $sizeMB MB`n"
+        $Report += "-    **Last Modified (latest file):** $lm`n"
+    $Report += "-    **Filters:** ExcludeGit=$($fs.Filters.ExcludeGit), ExcludeCompressed=$($fs.Filters.ExcludeCompressed), ExcludeArchiveOrTemp=$($fs.Filters.ExcludeArchiveOrTemp)`n"
+        if ($fs.TopExtensions -and $fs.TopExtensions.Count -gt 0) {
+            $Report += "-    **Top Extensions:** `n"
+            foreach ($e in $fs.TopExtensions) { $Report += "     - $($e.Extension): $($e.Count)`n" }
+        }
+        $Report += "`n"
+    }
+
     $Report += "---`n`n"
     $Report += "   *Generated by VA Power Platform Workspace Template*`n"
     $Report += "   *Report ID: $(Get-Date -Format 'yyyyMMdd-HHmmss')*`n"
@@ -964,21 +1235,45 @@ function Export-Report {
             $chipFiles = if ($dc) { New-DeltaChip $dc.FilesChanged } else { '' }
             $chipEffort = if ($dc) { New-DeltaChip ([int]$dc.EstimatedWorkMinutes) } else { '' }
 
-            $kpiHtml = @"
-                                <div class="kpis">
-                                        <div class="kpi"><div class="kpi-label">Git Commits</div><div class="kpi-value">$($Data.Git.CommitCount) $chipCommits</div></div>
-                                        <div class="kpi"><div class="kpi-label">Lines Added</div><div class="kpi-value add">$($Data.Git.LinesAddedRaw) $chipAdded</div></div>
-                                        <div class="kpi"><div class="kpi-label">Lines Removed</div><div class="kpi-value remove">$($Data.Git.LinesRemovedRaw) $chipRemoved</div></div>
-                                        <div class="kpi"><div class="kpi-label">Lines Modified (est.)</div><div class="kpi-value mod">$($Data.Git.LinesModified) $chipModified</div></div>
-                                        <div class="kpi"><div class="kpi-label">Files Changed</div><div class="kpi-value">$($Data.Git.FilesChanged) $chipFiles</div></div>
-                                        <div class="kpi"><div class="kpi-label">Est. Work</div><div class="kpi-value">$($Data.Git.EstimatedWorkMinutes) min $chipEffort<br><span class="sub">($workHours h)</span></div></div>
-                                </div>
+        $kpiHtml = @"
+                <div class="kpis">
+                    <div class="kpi"><div class="kpi-label">Git Commits</div><div class="kpi-value">$($Data.Git.CommitCount) $chipCommits</div></div>
+                    <div class="kpi"><div class="kpi-label">Lines Added (raw)</div><div class="kpi-value add">$($Data.Git.LinesAddedRaw) $chipAdded</div></div>
+                    <div class="kpi"><div class="kpi-label">Lines Removed (raw)</div><div class="kpi-value remove">$($Data.Git.LinesRemovedRaw) $chipRemoved</div></div>
+                    <div class="kpi"><div class="kpi-label">Lines Modified (est.)</div><div class="kpi-value mod">$($Data.Git.LinesModified) $chipModified</div></div>
+                    <div class="kpi"><div class="kpi-label">Files Changed</div><div class="kpi-value">$($Data.Git.FilesChanged) $chipFiles</div></div>
+                    <div class="kpi"><div class="kpi-label">Est. Work</div><div class="kpi-value">$($Data.Git.EstimatedWorkMinutes) min $chipEffort<br><span class="sub">($workHours h)</span></div></div>
+                </div>
+
+"@
+            $fsSummaryHtml = ''
+            if ($null -ne $Data.Filesystem) {
+                $fs = $Data.Filesystem
+                function _fmtBytes2([Nullable[int64]]$b) {
+                    if ($null -eq $b) { return '0 B' }
+                    $sizes = 'B','KB','MB','GB','TB'
+                    $i=0; $val=[double]$b
+                    while ($val -ge 1024 -and $i -lt $sizes.Length-1) { $val/=1024; $i++ }
+                    return ('{0:N2} {1}' -f $val, $sizes[$i])
+                }
+                $sizeTxt2 = _fmtBytes2 $fs.SumSizeBytes
+                $lmTxt2 = if ($fs.LastModified) { $fs.LastModified.ToString('yyyy-MM-dd HH:mm') } else { 'n/a' }
+        $fsSummaryHtml = @"
+                <div class="kpis" style="margin-top:8px;">
+                    <div class="kpi"><div class="kpi-label">Root</div><div class="kpi-value" style="font-size:14px;">$repoAnchor</div></div>
+                    <div class="kpi"><div class="kpi-label">Items</div><div class="kpi-value">$($fs.TotalItems)</div></div>
+                    <div class="kpi"><div class="kpi-label">Text Lines (sum)</div><div class="kpi-value">$($fs.SumLines)</div></div>
+                    <div class="kpi"><div class="kpi-label">Characters (sum)</div><div class="kpi-value">$($fs.SumChars)</div></div>
+                    <div class="kpi"><div class="kpi-label">Total Size</div><div class="kpi-value">$sizeTxt2</div></div>
+                    <div class="kpi"><div class="kpi-label">Last Modified</div><div class="kpi-value">$lmTxt2</div></div>
+                </div>
 "@
 
-            # Build activity trend data from per-day stats (primary bars: FilesChanged; trend line: Lines basis)
+            } # end if ($null -ne $Data.Filesystem)
+
             $labels = New-Object System.Collections.Generic.List[string]
-            $bars = New-Object System.Collections.Generic.List[int]
-            $trend = New-Object System.Collections.Generic.List[int]
+            $bars   = New-Object System.Collections.Generic.List[int]
+            $trend  = New-Object System.Collections.Generic.List[int]
             $barLegend = 'Files changed'
             $tooltipBarLabel = 'Files changed'
             # Precompute a map of daily lines-basis for later alignment (used for commits-per-day fallback too)
@@ -1048,7 +1343,38 @@ function Export-Report {
             if ([string]::IsNullOrWhiteSpace($barsJson))   { $barsJson   = '[]' }
             if ([string]::IsNullOrWhiteSpace($trendJson))  { $trendJson  = '[]' }
 
+            # Build filesystem activity arrays (daily): bars = files modified per day; trend = sum of lines for those files
+            $fsLabelsJson = '[]'; $fsBarsJson = '[]'; $fsTrendJson = '[]'
+            try {
+                if ($Data.Filesystem -and $Data.Filesystem.Files -and $Data.Filesystem.Files.Count -gt 0) {
+                    $fsGroups = $Data.Filesystem.Files |
+                        Where-Object { $_.LastWriteTime } |
+                        Group-Object { $_.LastWriteTime.Date } |
+                        Sort-Object { try { [datetime]$_.Name } catch { Get-Date 0 } }
+                    $fsLabels = New-Object System.Collections.Generic.List[string]
+                    $fsBars = New-Object System.Collections.Generic.List[int]
+                    $fsTrend = New-Object System.Collections.Generic.List[int]
+                    foreach ($g in $fsGroups) {
+                        try { $d = [datetime]$g.Name } catch { $d = $null }
+                        $labelStr = if ($d) { $d.ToString('MM/dd') } else { '' }
+                        if (-not [string]::IsNullOrWhiteSpace($labelStr)) { [void]$fsLabels.Add($labelStr) } else { [void]$fsLabels.Add('') }
+                        [void]$fsBars.Add([int]$g.Count)
+                        $sumLinesDay = 0
+                        try { $sumLinesDay = [int]([long]((($g.Group | Measure-Object -Property Lines -Sum).Sum) -as [long])) } catch {}
+                        if ($sumLinesDay -lt 0) { $sumLinesDay = 0 }
+                        [void]$fsTrend.Add([int]$sumLinesDay)
+                    }
+                    $fsLabelsJson = ($fsLabels.ToArray() | ConvertTo-Json -Compress)
+                    $fsBarsJson = ($fsBars.ToArray() | ConvertTo-Json -Compress)
+                    $fsTrendJson = ($fsTrend.ToArray() | ConvertTo-Json -Compress)
+                    if ([string]::IsNullOrWhiteSpace($fsLabelsJson)) { $fsLabelsJson = '[]' }
+                    if ([string]::IsNullOrWhiteSpace($fsBarsJson))   { $fsBarsJson   = '[]' }
+                    if ([string]::IsNullOrWhiteSpace($fsTrendJson))  { $fsTrendJson  = '[]' }
+                }
+            } catch {}
+
             $chartSection = @"
+            <section data-view="git">
                 <h2>Activity Trend</h2>
                 <div class="chart-card">
                     <canvas id="trend" height="160" style="display:block; width:100%; min-height:160px;"></canvas>
@@ -1285,6 +1611,189 @@ function Export-Report {
                     }}
                 })();
                 </script>
+            </section>
+"@
+
+            # Filesystem Activity Trend chart
+            $fsChartSection = @"
+            <section data-view="fs">
+                <h2>Filesystem Activity Trend</h2>
+                <div class="chart-card">
+                    <canvas id="trend-fs" height="160" style="display:block; width:100%; min-height:160px;"></canvas>
+                    <div class="chart-legend" style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px;flex-wrap:wrap;">
+                        <div style="display:flex;gap:12px;align-items:center;">
+                            <span class="legend-item" style="display:inline-flex;align-items:center;gap:6px;color:var(--muted);"><span class="swatch" style="width:10px;height:10px;border-radius:2px;background:linear-gradient(180deg, var(--accent), var(--brand2));display:inline-block;"></span> Files modified</span>
+                            <span id="legend-trend-fs" class="legend-item" style="display:inline-flex;align-items:center;gap:6px;color:var(--muted);"><span class="swatch" style="width:16px;height:2px;background:#f59e0b;display:inline-block;"></span> Lines (sum)</span>
+                        </div>
+                        <div class="legend-metrics" style="display:flex;gap:10px;color:var(--muted);font-size:12px;">
+                            <span id="metric-total-fs"></span>
+                            <span id="metric-avg-fs"></span>
+                            <span id="metric-max-fs"></span>
+                        </div>
+                    </div>
+                    <div class="muted" style="font-size:12px;margin-top:6px;">Hover bars to see period details</div>
+                </div>
+                <script>
+                (function(){
+                    var labels = $fsLabelsJson;
+                    var bars = $fsBarsJson;
+                    var trend = $fsTrendJson;
+                    var tooltipBarLabel = 'Files modified';
+                    try { if (typeof labels === 'string') labels = JSON.parse(labels); } catch(e) {}
+                    try { if (typeof bars === 'string') bars = JSON.parse(bars); } catch(e) {}
+                    try { if (typeof trend === 'string') trend = JSON.parse(trend); } catch(e) {}
+                    labels = Array.isArray(labels) ? labels : [];
+                    bars = Array.isArray(bars) ? bars : [];
+                    trend = Array.isArray(trend) ? trend : [];
+                    var c = document.getElementById('trend-fs');
+                    var noData = !bars || bars.length===0;
+                    if (!c) { return; }
+                    var ctx = c.getContext('2d');
+                    var total = 0, max = 0, maxIdx = 0;
+                    for (var i=0;i<(bars?bars.length:0);i++){
+                        var v = Number(bars[i]) || 0;
+                        total += v;
+                        if (v > max){ max = v; maxIdx = i; }
+                    }
+                    var avg = (!noData && bars.length) ? (total / bars.length) : 0;
+                    var elTotal = document.getElementById('metric-total-fs'); if (elTotal) elTotal.textContent = noData ? 'No activity' : ('Total: ' + total);
+                    var elAvg = document.getElementById('metric-avg-fs'); if (elAvg) elAvg.textContent = noData ? '' : ('Avg: ' + (Math.round(avg*10)/10));
+                    var elMax = document.getElementById('metric-max-fs'); if (elMax) elMax.textContent = (!noData && bars.length) ? ('Max: ' + max + ' (' + labels[maxIdx] + ')') : '';
+                    var hasTrend = Array.isArray(trend) && trend.length === bars.length && trend.some(function(v){ return v>0; });
+                    if (!hasTrend) {
+                        var lt = document.getElementById('legend-trend-fs');
+                        if (lt) lt.style.display = 'none';
+                    }
+                    var dpr = window.devicePixelRatio || 1;
+                    var pad = 28;
+                    var hoverIdx = -1;
+                    function sizeCanvas(){
+                        var parent = c.parentElement;
+                        var cssW = (parent && parent.clientWidth ? parent.clientWidth : (c.clientWidth || 600));
+                        var cssH = parseInt(getComputedStyle(c).height) || c.clientHeight || 140;
+                        c.style.width = '100%';
+                        if (!c.style.height) { c.style.height = cssH + 'px'; }
+                        c.width = Math.max(1, Math.floor(cssW * dpr));
+                        c.height = Math.max(1, Math.floor(cssH * dpr));
+                        ctx.setTransform(dpr,0,0,dpr,0,0);
+                    }
+                    function barColor(value){
+                        var t = max === 0 ? 0 : (value / max);
+                        var c1 = [45,114,163];
+                        var c2 = [62,140,199];
+                        var r = Math.round(c1[0] + (c2[0]-c1[0])*t);
+                        var g = Math.round(c1[1] + (c2[1]-c1[1])*t);
+                        var b = Math.round(c1[2] + (c2[2]-c1[2])*t);
+                        return 'rgb(' + r + ',' + g + ',' + b + ')';
+                    }
+                    function draw(){
+                        sizeCanvas();
+                        var w = (c.parentElement && c.parentElement.clientWidth) ? c.parentElement.clientWidth : (c.clientWidth || 600);
+                        var h = (parseInt(getComputedStyle(c).height) || c.clientHeight || 160);
+                        if (w < 20 || h < 20) { setTimeout(function(){ try{ draw(); }catch(_){} }, 30); return; }
+                        ctx.clearRect(0,0,w,h);
+                        var innerW = w - pad*2, innerH = h - pad*2;
+                        innerW = Math.max(1, innerW);
+                        innerH = Math.max(1, innerH);
+                        var step = noData ? 1 : (innerW / Math.max(1, bars.length));
+                        var barW = noData ? 0 : Math.max(2, Math.min(18, step * 0.66));
+                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border') || '#e5e7eb';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        for (var g=0; g<=4; g++) {
+                            var gy = h - pad - (innerH * (g/4));
+                            ctx.moveTo(pad, gy + 0.5);
+                            ctx.lineTo(w - pad, gy + 0.5);
+                        }
+                        ctx.stroke();
+                        if (noData) {
+                            var msg = 'No activity in selected period';
+                            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted') || '#6b7280';
+                            ctx.font = '14px Segoe UI, Arial, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(msg, w/2, h/2);
+                            return;
+                        }
+                        for (var i=0;i<bars.length;i++){
+                            var x = pad + i*step + (step - barW)/2;
+                            var bv = Number(bars[i]) || 0;
+                            var barH = max===0 ? 0 : (bv/max) * innerH;
+                            var y = h - pad - barH;
+                            var r = Math.min(6, barW/2);
+                            ctx.fillStyle = barColor(bv);
+                            if (i === hoverIdx) { ctx.fillStyle = '#1f5582'; }
+                            ctx.beginPath();
+                            ctx.moveTo(x, y + r);
+                            ctx.arcTo(x, y, x + r, y, r);
+                            ctx.lineTo(x + barW - r, y);
+                            ctx.arcTo(x + barW, y, x + barW, y + r, r);
+                            ctx.lineTo(x + barW, y + barH);
+                            ctx.lineTo(x, y + barH);
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+                        if (hasTrend) {
+                            ctx.strokeStyle = '#f59e0b';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            var tmax = 0; for (var i=0;i<trend.length;i++){ if (trend[i]>tmax) tmax = trend[i]; }
+                            for (var i=0;i<trend.length;i++){
+                                var cx = pad + i*step + step/2;
+                                var cy = h - pad - (tmax===0 ? 0 : (trend[i]/tmax) * innerH);
+                                if (i===0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+                            }
+                            ctx.stroke();
+                        }
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted') || '#6b7280';
+                        ctx.font = '12px Segoe UI, Arial, sans-serif';
+                        var rangeText = labels.length ? (labels[0] + ' – ' + labels[labels.length-1]) : '';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(rangeText, w - 8, pad - 10);
+                        if (hoverIdx >= 0) {
+                            var cx = pad + hoverIdx*step + step/2;
+                            var hv = Number(bars[hoverIdx]) || 0;
+                            var cy = h - pad - (max===0 ? 0 : (hv/max) * innerH);
+                            ctx.strokeStyle = 'rgba(31,85,130,0.4)';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath(); ctx.moveTo(cx + 0.5, pad); ctx.lineTo(cx + 0.5, h - pad); ctx.stroke();
+                            var text1 = labels[hoverIdx];
+                            var text2 = tooltipBarLabel + ': ' + hv;
+                            var text3 = hasTrend ? ('Lines (sum): ' + (trend[hoverIdx] || 0)) : '';
+                            ctx.font = '12px Segoe UI, Arial, sans-serif';
+                            var tw = Math.max(ctx.measureText(text1).width, ctx.measureText(text2).width, hasTrend?ctx.measureText(text3).width:0) + 16;
+                            var th = hasTrend ? 52 : 36;
+                            var tx = Math.min(Math.max(8, cx - tw/2), w - tw - 8);
+                            var ty = Math.max(pad + 8, cy - th - 8);
+                            ctx.fillStyle = 'rgba(15,23,42,0.9)'; var isDark = matchMedia('(prefers-color-scheme: dark)').matches; if (!isDark) ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                            ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.15)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2; ctx.fillRect(tx, ty, tw, th); ctx.restore();
+                            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border') || '#e5e7eb';
+                            ctx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
+                            ctx.fillStyle = isDark ? '#e5e7eb' : '#1f2937';
+                            ctx.textAlign = 'left';
+                            ctx.fillText(text1, tx + 8, ty + 14);
+                            ctx.fillText(text2, tx + 8, ty + 28);
+                            if (hasTrend) ctx.fillText(text3, tx + 8, ty + 42);
+                        }
+                    }
+                    function locateIndex(evt){
+                        var rect = c.getBoundingClientRect();
+                        var x = (evt.clientX - rect.left);
+                        var w = c.clientWidth || 600;
+                        var innerW = w - pad*2;
+                        var step = innerW / (noData ? 1 : bars.length);
+                        var rel = Math.max(0, Math.min(innerW, x - pad));
+                        var idx = noData ? -1 : Math.floor(rel / step);
+                        if (!noData && (idx < 0 || idx >= bars.length)) idx = -1;
+                        return idx;
+                    }
+                    c.addEventListener('mousemove', function(e){ hoverIdx = locateIndex(e); try{ draw(); }catch(_){} });
+                    c.addEventListener('mouseleave', function(){ hoverIdx = -1; try{ draw(); }catch(_){} });
+                    window.addEventListener('resize', function(){ try{ draw(); }catch(_){} });
+                    try { if (window.ResizeObserver) { var ro = new ResizeObserver(function(){ try{ draw(); }catch(_e){} }); ro.observe(c.parentElement || c); } } catch(_){ }
+                    try { requestAnimationFrame(function(){ try{ draw(); }catch(_e){} }); } catch(_) { try { draw(); } catch(e) { try { ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle = '#ef4444'; ctx.font = '12px Segoe UI, Arial, sans-serif'; ctx.fillText('Chart render error: ' + (e && e.message ? e.message : e), 8, 18); } catch {} } }
+                })();
+                </script>
+            </section>
 "@
 
             $commitTable = if ($commitRows) {
@@ -1302,52 +1811,91 @@ function Export-Report {
                                 '<p class="muted">No commits found in the selected period.</p>'
                         }
 
-                        # Build HTML rows for Alternative Effort Comparison (with per-row accordion)
-                        $altRowsHtml = ""
+                        # Filesystem card (if present)
+                        $fsCard = ''
                         try {
-                            $hadAny = $false
-                            if ($Data.Git.AlternativeEffort -and $Data.Git.AlternativeEffort.Items) {
-                                foreach ($it in @($Data.Git.AlternativeEffort.Items)) {
-                                    if (-not $it) { continue }
-                                    $hadAny = $true
-                                    $label = & $encode $it.Label
-                                    $factorTxt = ('{0:N2}' -f [double]$it.Factor)
-                                    $hoursTxt = ('{0:N2}' -f [double]$it.Hours)
-
-                                    # Build accordion content (description + sources)
-                                    $descBlock = ""
-                                    if ($it.PSObject.Properties.Match('Description').Count -gt 0 -and $it.Description) {
-                                        $descBlock = [string]$it.Description
-                                    }
-
-                                    $linksList = ""
-                                    $linkCount = 0
-                                    if ($it.Links) {
-                                        $linkItems = @()
-                                        foreach ($lnk in @($it.Links)) {
-                                            if ($lnk) {
-                                                $linkCount++
-                                                $safe = & $encode $lnk
-                                                $linkItems += "<li><a href='${safe}' target='_blank' rel='noopener'>${safe}</a></li>"
-                                            }
-                                        }
-                                        if ($linkItems.Count -gt 0) {
-                                            $linksList = '<div style="margin-top:8px"><strong>Sources:</strong><ul style="margin:6px 0 0 18px">' + ($linkItems -join '') + '</ul></div>'
-                                        }
-                                    }
-
-                                    $summaryText = if ($linkCount -gt 0) { "Details (${linkCount} links)" } else { "Details" }
-                                    $accordion = "<details><summary>${summaryText}</summary><div class='details-content'>${descBlock}${linksList}</div></details>"
-
-                                    $altRowsHtml += "<tr><td>${label}</td><td style='white-space:nowrap'>${factorTxt}</td><td style='white-space:nowrap'>${hoursTxt}</td><td>${accordion}</td></tr>"
+                            if ($null -ne $Data.Filesystem) {
+                                $fs = $Data.Filesystem
+                                function _fmtBytes([Nullable[int64]]$b) {
+                                    if ($null -eq $b) { return '0 B' }
+                                    $sizes = 'B','KB','MB','GB','TB'
+                                    $i=0; $val=[double]$b
+                                    while ($val -ge 1024 -and $i -lt $sizes.Length-1) { $val/=1024; $i++ }
+                                    return ('{0:N2} {1}' -f $val, $sizes[$i])
                                 }
+                                $sizeTxt = _fmtBytes $fs.SumSizeBytes
+                                $lmTxt = if ($fs.LastModified) { $fs.LastModified.ToString('yyyy-MM-dd HH:mm') } else { 'n/a' }
+                                $extList = ''
+                                if ($fs.TopExtensions -and $fs.TopExtensions.Count -gt 0) {
+                                    $li = @()
+                                    foreach ($e in $fs.TopExtensions) { $li += ('<li><code>' + (& $encode $e.Extension) + '</code>: ' + $e.Count + '</li>') }
+                                    $extList = '<ul style="margin:6px 0 0 18px">' + ($li -join '') + '</ul>'
+                                }
+                                # Build file table rows (limited to first 500 for HTML size)
+                                $fileRowsHtml = ''
+                                try {
+                                    $maxRows = 500
+                                    $rows = @()
+                                    # Sort by LastWriteTime (modified date) descending
+                                    foreach ($row in @($fs.Files | Sort-Object -Property @{Expression='LastWriteTime'; Descending=$true}, @{Expression='RelativePath'; Descending=$false} | Select-Object -First $maxRows)) {
+                                        $rp = & $encode $row.RelativePath
+                                        $sz = _fmtBytes $row.SizeBytes
+                                        $ln = $row.Lines
+                                        $ch = $row.Chars
+                                        $dt = if ($row.LastWriteTime) { $row.LastWriteTime.ToString('yyyy-MM-dd HH:mm') } else { '' }
+                                        $rows += "<tr><td><code>$rp</code></td><td style='text-align:right'>$sz</td><td style='text-align:right'>$ln</td><td style='text-align:right'>$ch</td><td>$dt</td></tr>"
+                                    }
+                                    if ($rows.Count -gt 0) { $fileRowsHtml = ($rows -join "") } else { $fileRowsHtml = "<tr><td colspan='5' class='muted'>No non-binary text files found.</td></tr>" }
+                                } catch { $fileRowsHtml = "<tr><td colspan='5' class='muted'>Failed to render file list.</td></tr>" }
+                                $fsCard = @"
+        <section class="card" style="margin-top:16px;">
+            <h2>Recursive Directory Analysis</h2>
+            <div class="kpis" style="margin-bottom:10px;">
+                <div class="kpi"><div class="kpi-label">Root</div><div class="kpi-value" style="font-size:14px;">$repoAnchor</div></div>
+                <div class="kpi"><div class="kpi-label">Items</div><div class="kpi-value">$($fs.TotalItems)</div></div>
+                <div class="kpi"><div class="kpi-label">Text Lines (sum)</div><div class="kpi-value">$($fs.SumLines)</div></div>
+                <div class="kpi"><div class="kpi-label">Characters (sum)</div><div class="kpi-value">$($fs.SumChars)</div></div>
+                <div class="kpi"><div class="kpi-label">Total Size</div><div class="kpi-value">$sizeTxt</div></div>
+                <div class="kpi"><div class="kpi-label">Last Modified</div><div class="kpi-value">$lmTxt</div></div>
+            </div>
+            <div class="intro" style="margin-top:10px;">
+                <p><strong>Top Extensions:</strong></p>
+                $extList
+            </div>
+            <h3 style="margin-top:16px; color:var(--brand2);">Non-binary Text Files (first 500)</h3>
+            <table class="table">
+                <thead><tr><th>Path</th><th style="text-align:right">Size</th><th style="text-align:right">Lines</th><th style="text-align:right">Chars</th><th>Last Modified</th></tr></thead>
+                <tbody>
+                    $fileRowsHtml
+                </tbody>
+            </table>
+    </section>
+"@
                             }
-                            if (-not $hadAny -or [string]::IsNullOrWhiteSpace($altRowsHtml)) {
-                                $altRowsHtml = "<tr><td colspan='4' class='muted'>No data available for this period.</td></tr>"
-                            }
+                        } catch { $fsCard = '' }
+
+                        # Prepare Alternative Effort dynamic rendering data
+                        try {
+                            $gitAltBasisVal = [int]$Data.Git.AlternativeEffort.LinesBasis
+                            $gitAltBasisLabel = [string]$Data.Git.AlternativeEffort.BasisLabel
                         } catch {
-                            $altRowsHtml = "<tr><td colspan='4' class='muted'>Failed to render comparison rows.</td></tr>"
+                            $gitAltBasisVal = 0
+                            $gitAltBasisLabel = 'Git lines basis'
                         }
+                        try {
+                            if ($Data.Filesystem) { $fsAltBasisVal = [int]$Data.Filesystem.SumLines } else { $fsAltBasisVal = 0 }
+                            $fsAltBasisLabel = 'Text Lines (sum) across directory'
+                        } catch { $fsAltBasisVal = 0; $fsAltBasisLabel = 'Text Lines (sum) across directory' }
+                        try {
+                            $altItemsJson = ($Data.Git.AlternativeEffort.Items | Select-Object Label,Factor,Links,Description | ConvertTo-Json -Depth 6 -Compress)
+                        } catch { $altItemsJson = '[]' }
+                        # JSON literals for safe JS embedding
+                        $gitAltBasisValJson = ($gitAltBasisVal | ConvertTo-Json -Compress)
+                        $gitAltBasisLabelJson = ($gitAltBasisLabel | ConvertTo-Json -Compress)
+                        $fsAltBasisValJson = ($fsAltBasisVal | ConvertTo-Json -Compress)
+                        $fsAltBasisLabelJson = ($fsAltBasisLabel | ConvertTo-Json -Compress)
+
+                        # Alternative Effort rows are now client-rendered dynamically based on selected view
 
                         # Precompute header metadata strings to avoid complex subexpressions inside the here-string
                         $metaPeriodText = if ($period) { "Period: $period" } else { '' }
@@ -1381,11 +1929,12 @@ function Export-Report {
                 @media (prefers-color-scheme: dark){
                         :root{ --bg:#0b0f14; --fg:#e5e7eb; --muted:#94a3b8; --card:#0f172a; --border:#233044; }
                 }
-                body{ margin:32px; font-family:Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:var(--fg); }
-                .container{ max-width:1100px; margin:0 auto; }
+                body{ margin:0; padding:32px; font-family:Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:var(--fg); display:flex; min-height:100vh; flex-direction:column; }
+                .container{ max-width:1100px; margin:0 auto; width:100%; flex:1; display:block; }
                 header h1{ margin:0; font-size:26px; color:var(--brand); }
                 header .meta{ color:var(--muted); margin-top:4px; }
                 .cards{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:24px 0; }
+                .cards-single{ grid-template-columns:1fr; }
                 .card{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
                 .kpis{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin-top:8px; }
                 .kpi{ background:#fff0; border:1px dashed var(--border); border-radius:8px; padding:12px; text-align:center; }
@@ -1404,15 +1953,21 @@ function Export-Report {
                 .table thead{ background:var(--card); }
                 .table th, .table td{ padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
                 .muted{ color:var(--muted); }
-                footer{ margin-top:24px; color:var(--muted); font-size:12px; }
+                footer{ margin-top:24px; color:var(--muted); font-size:12px; padding-top:8px; border-top:1px solid var(--border); }
+                footer .meta-row{ margin-top:6px; }
                 code{ background:var(--card); padding:2px 6px; border-radius:6px; }
                 #trend{ width:100%; display:block; }
                 .chart-card{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-top:16px; }
+                .chart-legend{ font-size:12px; color:var(--muted); }
                 .meta-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
                 .meta-chip{ background:var(--card); border:1px solid var(--border); color:var(--muted); border-radius:999px; padding:4px 10px; font-size:12px; }
                 .intro{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-top:12px; }
                 .intro p{ margin:6px 0; color:var(--muted); }
                 .intro ul{ margin:6px 0 0 18px; color:var(--muted); }
+                .toggle .toggle-btn{ transition: background-color .15s ease, color .15s ease; }
+                .toggle-btn.active{ background:var(--brand); color:#fff !important; }
+                .toggle.toggle--intro .toggle-btn{ font-size:18px; padding:14px 22px !important; font-weight:600; }
+                .placeholder{ text-align:center; padding:48px 12px 24px 12px; }
                 /* Accordions */
                 details { border:1px solid var(--border); border-radius:8px; padding:8px 10px; background:#fff0; }
                 details + details { margin-top:8px; }
@@ -1440,53 +1995,142 @@ function Export-Report {
             </ul>
         </section>
 
-        <section class="cards">
-            <div class="card">
-                <h2>Executive Summary</h2>
-                <p>Snapshot of development activity and estimated effort for the selected period.</p>
-                $kpiHtml
+        <div style="display:flex;justify-content:center;margin:10px 0 4px 0;">
+            <div class="toggle toggle--intro" role="group" aria-label="View selector" style="display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;">
+                <button id="btn-view-git" class="toggle-btn" style="padding:6px 12px;border:none;background:transparent;color:var(--brand2);cursor:pointer;">Repository Commit View</button>
+                <button id="btn-view-fs" class="toggle-btn" style="padding:6px 12px;border:none;background:transparent;color:var(--brand2);cursor:pointer;">Recursive Directory View</button>
             </div>
+        </div>
+
+        <div id="view-placeholder" class="placeholder" aria-live="polite">
+            <h2 style="margin:0 0 8px 0; color:var(--brand2);">Select a view to continue</h2>
+            <p style="margin:0;">Use the toggle above to switch between repository commits and the recursive directory analysis.</p>
+        </div>
+
+        <section class="cards cards-single" data-view="git" style="display:none;">
             <div class="card">
-                <h2>Code Development Statistics</h2>
-                <ul class="muted" style="margin:6px 0 0 18px; line-height:1.6;">
-                    <li>Commits: $($Data.Git.CommitCount)</li>
-                    <li>Lines Added: $($Data.Git.LinesAdded)</li>
-                    <li>Lines Removed: $($Data.Git.LinesRemoved)</li>
-                    <li>Lines Modified: $($Data.Git.LinesModified)</li>
-                    <li>Files Changed: $($Data.Git.FilesChanged)</li>
-                    <li>Estimated Time: $($Data.Git.EstimatedWorkMinutes) minutes ($workHours hours)</li>
-                </ul>
+                <h2>Commit Summary</h2>
+                <p class="muted">Snapshot of development activity and estimated effort for the selected period that was committed to the Git repository.</p>
+                $kpiHtml
             </div>
         </section>
 
-    $chartSection
+        <section class="cards cards-single" data-view="fs" style="display:none;">
+            <div class="card">
+                <h2>Directory Summary</h2>
+                <p class="muted">Snapshot of development activity and estimated effort for the entire directory tree.</p>
+                $fsSummaryHtml
+            </div>
+        </section>
 
-    $commitTable
+        <div data-view="git" style="display:none;">$chartSection</div>
+        <div data-view="fs" style="display:none;">$fsChartSection</div>
 
-        <section class="card" style="margin-top:16px;">
+        <div data-view="git" style="display:none;">$commitTable</div>
+        <div data-view="fs" style="display:none;">$fsCard</div>
+
+    <section class="card" data-view="alt" style="margin-top:16px; display:none;">
             <h2>Alternative Effort Comparison</h2>
             <p class="muted" style="margin-top:4px">Educational estimates based on lines of code and benchmarked productivity factors for different developer types and contexts. Formula: <code>Labor Hours = LinesOfText × Productivity Factor</code>. Basis here is <strong>Lines Added + 0.5 × Lines Modified − 0.5 × Lines Removed</strong> for the selected period.</p>
             <div class="intro" style="margin-top:10px;">
-                <p><strong>Lines basis:</strong> $($Data.Git.AlternativeEffort.LinesBasis) <span class="muted">($($Data.Git.AlternativeEffort.BasisLabel))</span></p>
+                <p><strong>Lines basis:</strong> <span id="alt-basis-value">$($Data.Git.AlternativeEffort.LinesBasis)</span> <span class="muted">(<span id="alt-basis-label">$($Data.Git.AlternativeEffort.BasisLabel)</span>)</span></p>
             </div>
             <table class="table" style="margin-top:10px;">
                 <thead>
                     <tr><th>Developer Type</th><th>Factor (hrs/line)</th><th>Estimated Hours</th><th>References</th></tr>
                 </thead>
-                <tbody>
-                $altRowsHtml
-                </tbody>
+                <tbody id="alt-rows"></tbody>
             </table>
             <div class="muted" style="font-size:12px;margin-top:8px;">
                 Sources and references are provided for transparency. Adjust factors to match your org’s historical data if available.
             </div>
         </section>
 
+        <script>
+        (function(){
+            var toggle = document.querySelector('.toggle');
+            var btnGit = document.getElementById('btn-view-git');
+            var btnFs = document.getElementById('btn-view-fs');
+            var placeholder = document.getElementById('view-placeholder');
+            var footer = document.querySelector('footer .meta-row');
+            var altSection = document.querySelector('[data-view="alt"]');
+            var altRows = document.getElementById('alt-rows');
+            var basisValEl = document.getElementById('alt-basis-value');
+            var basisLabelEl = document.getElementById('alt-basis-label');
+            if (!btnGit || !btnFs) return;
+
+            var altData = {
+                git: { basisVal: $gitAltBasisValJson, basisLabel: $gitAltBasisLabelJson },
+                fs:  { basisVal: $fsAltBasisValJson,  basisLabel: $fsAltBasisLabelJson  },
+                items: $altItemsJson
+            };
+
+            function renderAlt(view){
+                try {
+                    if (!altSection || !altRows) return;
+                    var d = altData[view];
+                    if (!d) return;
+                    var basisVal = Number(d.basisVal) || 0;
+                    if (basisValEl) basisValEl.textContent = String(basisVal);
+                    if (basisLabelEl) basisLabelEl.textContent = d.basisLabel || '';
+                    var items = altData.items || [];
+                    if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+                    var rows = [];
+                    for (var i=0;i<items.length;i++){
+                        var it = items[i]||{};
+                        var label = it.Label || '';
+                        var factor = Number(it.Factor) || 0;
+                        var hours = Math.round((basisVal * factor) * 10) / 10;
+                        var desc = it.Description || '';
+                        var links = Array.isArray(it.Links) ? it.Links : [];
+                        var linkHtml = '';
+                        if (links.length){
+                            var li = links.map(function(u){ var safe=String(u||''); return '<li><a href="'+safe+'" target="_blank" rel="noopener">'+safe+'</a></li>'; }).join('');
+                            linkHtml = '<div style="margin-top:8px"><strong>Sources:</strong><ul style="margin:6px 0 0 18px">'+li+'</ul></div>';
+                        }
+                        var details = '<details><summary>Details'+(links.length?(' ('+links.length+' links)'):'')+'</summary><div class="details-content">'+desc+linkHtml+'</div></details>';
+                        rows.push('<tr><td>'+label+'</td><td style="white-space:nowrap">'+factor.toFixed(2)+'</td><td style="white-space:nowrap">'+hours.toFixed(1)+'</td><td>'+details+'</td></tr>');
+                    }
+                    altRows.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="4" class="muted">No data available for this period.</td></tr>';
+                } catch(e) {}
+            }
+
+            function setView(view){
+                var showGit = view === 'git';
+                btnGit.classList.toggle('active', showGit);
+                btnFs.classList.toggle('active', !showGit);
+                document.querySelectorAll('[data-view="git"]').forEach(function(el){ el.style.display = showGit? '' : 'none'; });
+                document.querySelectorAll('[data-view="fs"]').forEach(function(el){ el.style.display = showGit? 'none' : ''; });
+                document.querySelectorAll('[data-view="alt"]').forEach(function(el){ el.style.display = ''; });
+                if (placeholder) placeholder.style.display = 'none';
+                if (toggle) toggle.classList.remove('toggle--intro');
+                if (footer){
+                    var chipId = 'active-view-chip';
+                    var existing = document.getElementById(chipId);
+                    var label = showGit ? 'View: Repository Commits' : 'View: Recursive Directory';
+                    if (!existing){
+                        var span = document.createElement('span');
+                        span.className = 'meta-chip';
+                        span.id = chipId;
+                        span.textContent = label;
+                        footer.appendChild(span);
+                    } else {
+                        existing.textContent = label;
+                    }
+                }
+                renderAlt(showGit ? 'git' : 'fs');
+            }
+
+            btnGit.addEventListener('click', function(){ setView('git'); });
+            btnFs.addEventListener('click', function(){ setView('fs'); });
+            // Start with placeholder visible, no view selected
+        })();
+        </script>
+
         <footer>
             <span style="font-size:12px;">Generated by VA Power Platform Workspace Template · Report ID: $(Get-Date -Format 'yyyyMMdd-HHmmss')</span>
             <div class="meta-row" style="margin-bottom:6px; font-size:3px;">
                 $metaChipsHtml
-            </div>
             </div>
         </footer>
     </div>
@@ -1495,11 +2139,13 @@ function Export-Report {
 "@
                         Set-Content -Path $OutputPath -Value $FullHtml -Encoding UTF8
         }
-        "JSON" {
-            $Data | ConvertTo-Json -Depth 10 | Set-Content -Path $OutputPath -Encoding UTF8
-        }
-        "CSV" {
-            $CsvData = @"
+        default {
+            switch ($Format) {
+                "JSON" {
+                    $Data | ConvertTo-Json -Depth 10 | Set-Content -Path $OutputPath -Encoding UTF8
+                }
+                "CSV" {
+                    $CsvData = @"
 Metric,Value
 Report Generated,$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 Git Commits,$($Data.Git.CommitCount)
@@ -1508,8 +2154,24 @@ Lines Removed,$($Data.Git.LinesRemoved)
 Lines Modified,$($Data.Git.LinesModified)
 Files Changed,$($Data.Git.FilesChanged)
 Estimated Work Minutes,$($Data.Git.EstimatedWorkMinutes)
+Filesystem Root,$($Data.Filesystem.Root)
+Filesystem Total Items,$($Data.Filesystem.TotalItems)
+Filesystem Files,$($Data.Filesystem.TotalFiles)
+Filesystem Folders,$($Data.Filesystem.TotalFolders)
+Filesystem Shortcuts,$($Data.Filesystem.TotalShortcuts)
+Filesystem Reparse Points,$($Data.Filesystem.TotalReparse)
+Filesystem Text Lines (sum),$($Data.Filesystem.SumLines)
+Filesystem Characters (sum),$($Data.Filesystem.SumChars)
+Filesystem Size Bytes,$($Data.Filesystem.SumSizeBytes)
+Filesystem Last Modified,$((if ($Data.Filesystem.LastModified) { $Data.Filesystem.LastModified.ToString('yyyy-MM-dd HH:mm:ss') } else { '' }))
 "@
-            Set-Content -Path $OutputPath -Value $CsvData -Encoding UTF8
+                    Set-Content -Path $OutputPath -Value $CsvData -Encoding UTF8
+                }
+                default {
+                    # Fallback: write the original content
+                    Set-Content -Path $OutputPath -Value $Content -Encoding UTF8
+                }
+            }
         }
     }
 }
@@ -1523,6 +2185,10 @@ try {
         Show-IntroText
         New-Divider
     }
+
+    # Ensure progress is visible in this session (will be restored later)
+    $origProgressPreference = $ProgressPreference
+    if (-not $Quiet) { $ProgressPreference = 'Continue' }
 
     $progressId = 1
 
@@ -1546,6 +2212,26 @@ try {
         $OutputFormat = Get-OutputFormatInteractive
     }
     if (-not $Quiet -and $OutputFormat) { Write-Host "Output Format: $OutputFormat" -ForegroundColor Yellow }
+
+    # Normalize -ExportFormats: allow a single comma-separated string (e.g., "HTML,JSON") or spaces/semicolons
+    if ($ExportFormats) {
+        if ($ExportFormats.Count -eq 1 -and ($ExportFormats[0] -match ',' -or $ExportFormats[0] -match ';' -or $ExportFormats[0] -match '\s')) {
+            $ExportFormats = @($ExportFormats[0] -split '[,;\s]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        }
+        # Canonicalize names (case-insensitive) to one of: Markdown, HTML, JSON, CSV
+        $canon = New-Object System.Collections.Generic.List[string]
+        foreach ($f in $ExportFormats) {
+            $v = ($f.ToString()).Trim()
+            switch -Regex ($v) {
+                '^(?i)md|markdown$' { [void]$canon.Add('Markdown'); continue }
+                '^(?i)htm|html$'    { [void]$canon.Add('HTML'); continue }
+                '^(?i)json$'        { [void]$canon.Add('JSON'); continue }
+                '^(?i)csv$'         { [void]$canon.Add('CSV'); continue }
+                default              { if ($v) { [void]$canon.Add($v) } }
+            }
+        }
+        $ExportFormats = @($canon.ToArray())
+    }
 
     # Determine default repo path and prompt user for an override with 15s timeout
     $DefaultRepo = Get-DefaultRepoPath -StartPath $PSScriptRoot
@@ -1626,12 +2312,13 @@ try {
     if ($ExportFormats -and $ExportFormats.Count -gt 0) {
         $ReportsPath = Split-Path -Parent $OutputPath
         foreach ($fmt in $ExportFormats) {
-            $ext = switch ($fmt) {
-                "Markdown" { "md" }
-                "HTML" { "html" }
-                "JSON" { "json" }
-                "CSV" { "csv" }
-                default { $fmt }
+            $fmtName = ($fmt.ToString()).Trim()
+            $ext = switch -Regex ($fmtName) {
+                '^(?i)Markdown$' { 'md' }
+                '^(?i)HTML$'     { 'html' }
+                '^(?i)JSON$'     { 'json' }
+                '^(?i)CSV$'      { 'csv' }
+                default          { ($fmtName -replace '^\.+','') } # fall back to raw, strip leading dots
             }
             $outFile = Join-Path $ReportsPath ("productivity-report-" + (Get-Date -Format 'yyyyMMdd-HHmmss') + "." + $ext)
             Export-Report -Content $ReportContent -Format $fmt -OutputPath $outFile -Data $ProductivityData
@@ -1685,13 +2372,25 @@ try {
 
     Write-Log "Productivity report generated successfully: $OutputPath" "SUCCESS"
 
-    # Keep window open so user can read output
-    if (-not $NonInteractive -and -not $Quiet) { try { [void](Read-Host -Prompt "Press Enter to exit") } catch {} }
+    # Exit behavior: if the HTML report was opened successfully, don't prompt (allow window/process to close).
+    # If it was not opened (error or non-HTML), keep the prompt so the user can read output/errors.
+    $isHtml = $false
+    try { $isHtml = ([System.IO.Path]::GetExtension($OutputPath)).Equals('.html', 'InvariantCultureIgnoreCase') } catch {}
+    $shouldPrompt = $true
+    if ($opened -and $isHtml) { $shouldPrompt = $false }
+    if ($shouldPrompt -and -not $NonInteractive -and -not $Quiet) {
+        try { [void](Read-Host -Prompt "Press Enter to exit") } catch {}
+    }
+
+    # Restore original progress preference
+    if ($PSBoundParameters.ContainsKey('origProgressPreference') -or $null -ne $origProgressPreference) { $ProgressPreference = $origProgressPreference }
 
 } catch {
     Write-Log "Error generating productivity report: $($_.Exception.Message)" "ERROR"
     Write-Host "Error generating report: $($_.Exception.Message)" -ForegroundColor Red
     # Pause on error as well so the user can read the message (if interactive)
     if (-not $NonInteractive -and -not $Quiet) { try { [void](Read-Host -Prompt "Press Enter to exit") } catch {} }
+    # Restore original progress preference on error
+    if ($PSBoundParameters.ContainsKey('origProgressPreference') -or $null -ne $origProgressPreference) { $ProgressPreference = $origProgressPreference }
     exit 1
 }
