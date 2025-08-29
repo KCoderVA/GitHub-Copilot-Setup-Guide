@@ -1,18 +1,3 @@
-<!--
-Copyright 2025 Kyle J. Coder
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
 
 # GitHub Copilot Enterprise Setup Guide (VA)
 
@@ -29,17 +14,13 @@ Interactive Reveal.js slide deck and printable guide to help VA employees (clini
 - `prompts/` – Role and domain-specific prompt template collections (clinical, analytics, security, etc.)
 - `dependencies/` – Bundled Reveal.js assets and Apache 2.0 license
 
-## Quick Start (GitHub Pages Hosting)
+## Quick Start
 
-1. Fork or clone this repository.
-2. Enable GitHub Pages in repository settings: Source = `main` (root).
-3. Visit: `https://<your-username>.github.io/GitHub-Copilot-Setup-Guide/`.
-4. Open `index.html` for the interactive version. For printing/distribution, use the PDF at `docs/GitHub Copilot Setup Guide (for VA Employees).pdf`.
+### Open [`index.html`](https://kcoderva.github.io/GitHub-Copilot-Setup-Guide/) for the interactive guide. OR, open [`docs/GitHub Copilot Setup Guide (for VA Employees).pdf`](https://github.com/KCoderVA/GitHub-Copilot-Setup-Guide/blob/main/docs/GitHub%20Copilot%20Setup%20Guide%20(for%20VA%20Employees).pdf) for a printable/distributable guide.
 
-## Local Workspace Setup (High Priority)
+## Local Workspace Setup (High Recommendation)
 
 Run these steps in the workspace where you actually do your work so Copilot follows your local rules.
-
 1) Download or clone this repository.
 2) Open your own active VS Code workspace (the project you want Copilot to obey).
 3) Run `copilot-instructions/Install-Copilot-Instructions.bat` from this repo in that workspace.
@@ -60,10 +41,6 @@ Why this matters:
 - Ensures deterministic Copilot behavior by giving it a single, discoverable rules file in `.github`
 - Reduces setup time for teammates; gives everyone the same guardrails and shortcuts
 - Validates a healthy workspace structure quickly and non-destructively
-
-## Printable Version
-
-Use the "Printable Version" button in the top-right of `index.html` to open the PDF (`docs/GitHub Copilot Setup Guide (for VA Employees).pdf`).
 
 ## Automation & Scripts
 All automation lives under `copilot-instructions/`.
@@ -110,9 +87,6 @@ Apache 2.0 – see `LICENSE`. Attribution required in derivatives. Embedded Reve
 
 ## Security & Compliance Reminder
 No PHI/PII or sensitive VA data should be placed in this repository. All examples are generic. Follow local ISSO guidance before operationalizing any automation.
-
-## Author
-Kyle J. Coder – Edward Hines Jr. VA Hospital / Clinical Informatics / Advanced Analytics
 
 ---
 *If you build a derivative focused on another VA role or specialty, please contribute a link back or open a PR so others can benefit.*
