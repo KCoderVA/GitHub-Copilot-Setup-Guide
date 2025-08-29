@@ -27,7 +27,7 @@ limitations under the License.
             "label": "Install/Update Copilot Instructions (.github)",
             "type": "shell",
             "command": "cmd.exe",
-            "args": ["/c", "\"${workspaceFolder}\\copilot-instructions\\Install-Copilot-Instructions.bat\""] ,
+            "args": ["/c", "\"${workspaceFolder}\\copilot-instructions\\Install-Copilot-Instructions.bat\""]
             "group": {
                 "kind": "build",
                 "isDefault": true
