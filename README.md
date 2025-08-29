@@ -16,7 +16,7 @@ Interactive Reveal.js slide deck and printable guide to help VA employees (clini
 
 ## Quick Start
 
-### Open [`index.html`](https://kcoderva.github.io/GitHub-Copilot-Setup-Guide/) for the interactive guide. OR, open [`docs/GitHub Copilot Setup Guide (for VA Employees).pdf`](https://github.com/KCoderVA/GitHub-Copilot-Setup-Guide/blob/main/docs/GitHub%20Copilot%20Setup%20Guide%20(for%20VA%20Employees).pdf)for a printable/distributable guide.
+### Open [`index.html`](https://kcoderva.github.io/GitHub-Copilot-Setup-Guide/) for the interactive guide. OR, open [`docs/GitHub Copilot Setup Guide (for VA Employees).pdf`](https://github.com/KCoderVA/GitHub-Copilot-Setup-Guide/blob/main/docs/GitHub%20Copilot%20Setup%20Guide%20(for%20VA%20Employees).pdf) for a printable/distributable guide.
 
 ## Local Workspace Setup (High Recommendation)
 
