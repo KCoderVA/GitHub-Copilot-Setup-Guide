@@ -23,3 +23,8 @@ This folder contains the documentation and release artifacts for the GitHub Copi
 - Legacy materials: `archive/`
 
 For the interactive guide, open the repository root `index.html` or visit the GitHub Pages site.
+
+## Workspace Automation (Summary)
+
+- Use `copilot-instructions/Install-Copilot-Instructions.bat` to create or update `.github/copilot-instructions.md` in any active workspace. The installer opens VS Code/Copilot Chat and copies a ready prompt.
+- Run automation via VS Code Tasks (Task: “Install/Update Copilot Instructions (.github)”, “Generate Productivity Report”, “Recursive Directory Analysis”, “Clean Workspace”).

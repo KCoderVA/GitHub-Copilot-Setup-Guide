@@ -18,6 +18,8 @@ limitations under the License.
 
 **Use these templates in your Copilot Chat to automate, analyze, and create in your VA workspace. Copy, adapt, and import as needed.**
 
+Note: The workspace instructions live at `.github/copilot-instructions.md`. Run `copilot-instructions/Install-Copilot-Instructions.bat` to install/update them and open Copilot Chat with a ready-to-paste prompt.
+
 ---
 
 ## Clinical Documentation & Patient Care

@@ -870,12 +870,15 @@ Do not actually save any changes or modifications without explicitly asking me f
             alt="VS Code Gear Icon" style="height:1em;vertical-align:middle;">
         </li>
         <li>Select <strong>GENERATE INSTRUCTIONS</strong></li>
-        <li>This creates a <code>copilot-instructions.md</code> file in your workspace</li>
+    <li>This installs/updates <code>.github/copilot-instructions.md</code> for your workspace</li>
         <li>Copy and paste the advanced prompt from the next slide for deeper personalization</li>
     </ol>
     <div class="optional">
         <b>What does this do?</b> Customizes Copilot’s behavior to your role, preferred style, and VA context.
     </div>
+    <p class="important" style="margin-top:0.6em;">
+        <b>Run locally:</b> Execute <code>Install-Copilot-Instructions.bat</code> from the root of your active project on a local drive (not a network share). This ensures the file is created at <code>.github/copilot-instructions.md</code>, VS Code opens to your project, and Copilot Chat can use the context correctly. After installing, run <code>Validate-WorkspaceSetup.ps1</code> to verify everything.
+    </p>
 </section>
 
 <section id="phase3-instructions-prompt" class="splitprompt">
@@ -1110,8 +1113,12 @@ Apply all VA infection control guidelines and ensure HIPAA compliance throughout
     <h2>Importable Copilot Template Files (Ready to Use)</h2>
     <ul>
         <li>
+            <a href="./copilot-instructions/Install-Copilot-Instructions.bat" target="_blank"><b>Install-Copilot-Instructions.bat</b></a> &ndash;<br>
+            <i>Creates/updates <code>.github/copilot-instructions.md</code>, opens VS Code/Copilot Chat, and copies a ready-to-paste prompt.</i>
+        </li>
+        <li>
             <a href="./copilot-instructions/copilot-instructions.md" target="_blank"><b>copilot-instructions.md</b></a> &ndash;<br>
-            <i>Template for workspace/project-specific Copilot instructions. Sets standards, folder structure, automation, and best practices for VA Power Platform projects. Use to bootstrap or customize Copilot for a new VA project workspace.</i>
+            <i>Template for workspace/project-specific Copilot instructions. The installer will place this at <code>.github/copilot-instructions.md</code> and prepend updates while preserving prior content.</i>
         </li>
         <li>
             <a href="./copilot-instructions/COPILOT_BRIEFING.md" target="_blank"><b>COPILOT_BRIEFING.md</b></a> &ndash;<br>
@@ -1134,19 +1141,30 @@ Apply all VA infection control guidelines and ensure HIPAA compliance throughout
             <i>Generates detailed productivity reports from workspace and Git activity, including VA-specific work effort estimates. Supports custom date ranges and multiple output formats. Ready for supervisor or compliance reporting.</i>
         </li>
         <li>
+            <a href="./copilot-instructions/Recursive-Directory-Analysis.ps1" target="_blank"><b>Recursive-Directory-Analysis.ps1</b></a> &ndash;<br>
+            <i>Recursively inventories a directory and writes a CSV summary with counts, sizes, authors, and text metrics.</i>
+        </li>
+        <li>
             <a href="./copilot-instructions/Validate-Syntax.ps1" target="_blank"><b>Validate-Syntax.ps1</b></a> &ndash;<br>
             <i>Checks configuration files (YAML, JSON, XML, MSAPP) for syntax errors. Can auto-fix simple mistakes and logs all results. Use before deploying configs or committing changes.</i>
         </li>
         <li>
             <a href="./copilot-instructions/Validate-WorkspaceSetup.ps1" target="_blank"><b>Validate-WorkspaceSetup.ps1</b></a> &ndash;<br>
-            <i>Validates full workspace setup (folders, files, VS Code config, Git, Power Platform CLI). Optionally auto-fixes missing directories and checks PowerShell script syntax. Outputs a report for onboarding and compliance.</i>
+            <i>Validates full workspace setup (folders, files, VS Code config, Git, Power Platform CLI). Optionally auto-fixes missing directories and checks PowerShell script syntax. Emits a JSON report and generates a collapsible guidance HTML in the workspace root for onboarding and fixes.</i>
+        </li>
+        <li>
+            <a href="./copilot-instructions/Generate-WorkspaceGuidance.ps1" target="_blank"><b>Generate-WorkspaceGuidance.ps1</b></a> &ndash;<br>
+            <i>Converts a validator JSON report into a detailed, beginner-friendly HTML guide with collapsible sections, expanded intro/footer, and curated resource links. Supports <code>-Open</code> to launch and <code>-DeleteJson</code> to clean up.</i>
         </li>
     </ul>
+    <p class="important" style="margin-top:0.6em;">
+    <b>Recommended order:</b> 1) Save these files into your local workspace folder. 2) Run <code>Install-Copilot-Instructions.bat</code> from that folder. 3) Run <code>Validate-WorkspaceSetup.ps1</code> in PowerShell (<code>pwsh</code>). It will emit a JSON report and generate a <code>Workspace-Guidance-*.html</code> with collapsible fix sections. This avoids network path issues and makes the setup idempotent and reliable.
+    </p>
     <p class="optional" style="margin-top:1em;">
     <b>How to use:</b> Open the <code>./copilot-instructions/prompts/</code> or <code>./copilot-instructions/</code> folder in VS Code, then copy or run the desired template in your own workspace. Each file contains usage notes or documentation.
     </p>
     <p class="highlight">
-        <b>Tip:</b> These templates are designed for a Power Platform developer in Clinical Informatics at Hines VA, but are very easilyadaptable for any VA project. You can even tell your new Copilot Agent to update these templates to for you, to customize your needs.
+        <b>Tip:</b> These templates are designed for a Power Platform developer in Clinical Informatics at Hines VA, but are very easily adaptable for any VA project. You can even tell your new Copilot Agent to update these templates for you to customize your needs.
     </p>
 </section>
 
