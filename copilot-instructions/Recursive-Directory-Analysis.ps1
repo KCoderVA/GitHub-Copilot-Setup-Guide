@@ -460,6 +460,73 @@ function New-RowObject {
     return [PSCustomObject]$obj
 }
 
+    <#
+    ---------------------------------------------------------------------
+function New-RowObject {
+    param(
+        [string]$ItemType,
+        [System.IO.FileSystemInfo]$Item,
+        [Nullable[int64]]$SizeBytes,
+        [string]$Author,
+        [Nullable[int]]$Lines,
+        [Nullable[int64]]$Chars)
+
+    $ext = if (-not $Item.PSIsContainer) { ($Item.Extension.ToLowerInvariant()); } else { $null }
+    $attrs = Get-ItemAttributesBooleans -Item $Item
+
+    $created = try { $Item.CreationTime.ToString("yyyy-MM-ddTHH:mm:ss.fffK") } catch { '' }
+    $modified = try { $Item.LastWriteTime.ToString("yyyy-MM-ddTHH:mm:ss.fffK") } catch { '' }
+
+    $name = try { $Item.Name } catch { [System.IO.Path]::GetFileName($Item.FullName) }
+    $full = try { $Item.FullName } catch { $null }
+
+    $extVal = if ($ext) { $ext } else { '' }
+    $sizeVal = if ($null -ne $SizeBytes) { [string]$SizeBytes } else { '' }
+    $linesVal = if ($null -ne $Lines) { [string]$Lines } else { '' }
+    $charsVal = if ($null -ne $Chars) { [string]$Chars } else { '' }
+
+    # Build Excel HYPERLINK formula for the FullPath column
+    # Requirement: clicking opens the containing folder/location, not the item itself.
+    $fullForLink = if ($full) { $full } else { '' }
+    $containingFolder = try {
+        if ($Item.PSIsContainer) {
+            if ($Item.Parent) { $Item.Parent.FullName } else { $Item.FullName }
+        } else {
+            $Item.DirectoryName
+        }
+    } catch { $fullForLink }
+    if ([string]::IsNullOrWhiteSpace($containingFolder)) { $containingFolder = $fullForLink }
+    # Escape double quotes for CSV/formula safety (Excel uses doubled quotes inside formulas)
+    $dispText = $fullForLink -replace '"','""'
+    $targetPath = $containingFolder -replace '"','""'
+    $fullHyperlink = if ([string]::IsNullOrEmpty($fullForLink)) { '' } else { [string]::Format('=HYPERLINK("{0}","{1}")', $targetPath, $dispText) }
+
+    # Reordered columns:
+    # Far left: CreatedTime, LastModifiedTime, Author, IsReparsePoint, IsHidden, IsReadOnly, IsSystem, IsArchive
+    # Then FullPath (as hyperlink), Name, and remaining columns
+    $obj = [ordered]@{
+        CreatedTime      = $created
+        LastModifiedTime = $modified
+        Author           = $Author
+        IsReparsePoint   = [string](Test-ReparsePoint -Item $Item)
+        IsHidden         = [string]$($attrs.IsHidden)
+        IsReadOnly       = [string]$($attrs.IsReadOnly)
+        IsSystem         = [string]$($attrs.IsSystem)
+        IsArchive        = [string]$($attrs.IsArchive)
+        FullPath         = $fullHyperlink
+        Name             = $name
+        ItemType         = $ItemType
+        Extension        = $extVal
+        SizeBytes        = $sizeVal
+        LinesOfText      = $linesVal
+        CharacterCount   = $charsVal
+    }
+    return [PSCustomObject]$obj
+}
+
+    ----------------------------------------------------------------------
+    #>
+
 function Build-CsvSummaryLine {
     param(
         [int]$TotalItems,

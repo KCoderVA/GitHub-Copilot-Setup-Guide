@@ -211,12 +211,15 @@ function Write-Log {
     Add-Content -Path $LogPath -Value $LogEntry
 }
 
+<<<<<<< Updated upstream
 # Conditional console writer (suppressed when -Quiet)
 function Write-Info {
     param([string]$Text, [ConsoleColor]$Color = [ConsoleColor]::Gray)
     if (-not $Quiet) { Write-Host $Text -ForegroundColor $Color }
 }
 
+=======
+>>>>>>> Stashed changes
 # Read a line with timeout (returns default if user doesn't answer in time)
 function Read-HostWithTimeout {
     param(
@@ -252,6 +255,7 @@ function Read-HostWithTimeout {
 }
 
 function Show-IntroText {
+<<<<<<< Updated upstream
     Write-Host ""
     Write-Host "What this tool does:" -ForegroundColor Cyan
     Write-Host "     Creates a decision-ready snapshot of development activity in this workspace for a selected period." -ForegroundColor Gray
@@ -294,6 +298,15 @@ function Show-IntroText {
     Write-Host "    - -Quiet                    : Minimize console output and suppress auto-open" -ForegroundColor Gray
     Write-Host "    - -MaxCommits <n>           : Limit the Recent Commits section length (default: 10)" -ForegroundColor Gray
     Write-Host "    - -BaselineJson <path>      : Compare against prior JSON export; deltas shown next to KPIs" -ForegroundColor Gray
+=======
+    Write-Host ""; Write-Host "About this tool" -ForegroundColor Cyan
+    Write-Host "Purpose: Generate a concise productivity snapshot for a chosen time period." -ForegroundColor Gray
+    Write-Host "Scope: Analyzes Git activity in this workspace and parses productivity logs (if present)." -ForegroundColor Gray
+    Write-Host "Intended use: Management/status reporting and personal tracking—not precise timekeeping." -ForegroundColor Gray
+    Write-Host "Expected results: A report file (Markdown/HTML/JSON/CSV) with commit counts, code deltas, and an effort estimate." -ForegroundColor Gray
+    Write-Host "Notes: The report is a snapshot of the selected period (Daily/Weekly/Monthly/All time/Custom)." -ForegroundColor Gray
+    Write-Host "       Use Custom for exact start/end dates. Opening the report is optional and can be automated." -ForegroundColor Gray
+>>>>>>> Stashed changes
 }
 
 function New-Divider {
@@ -321,8 +334,12 @@ function Show-ConfigSummary {
     [Nullable[DateTime]]$EndDate,
         [string]$OutputFormat,
         [bool]$OpenAfterGeneration,
+<<<<<<< Updated upstream
         [bool]$IncludeDetailed,
         [string]$GitRepoPath
+=======
+        [bool]$IncludeDetailed
+>>>>>>> Stashed changes
     )
     Show-Header "Selected Options"
     Write-Host ("  Report Type  : {0}" -f $ReportType) -ForegroundColor Gray
@@ -333,6 +350,7 @@ function Show-ConfigSummary {
     Write-Host ("  Output Format: {0}" -f $OutputFormat) -ForegroundColor Gray
     Write-Host ("  Open File    : {0}" -f ($(if ($OpenAfterGeneration) { 'Yes' } else { 'No' }))) -ForegroundColor Gray
     Write-Host ("  Detailed Mode: {0}" -f ($(if ($IncludeDetailed) { 'Yes' } else { 'No' }))) -ForegroundColor Gray
+<<<<<<< Updated upstream
     if ($GitRepoPath) { Write-Host ("  Git Repo Path: {0}" -f $GitRepoPath) -ForegroundColor Gray }
 }
 
@@ -380,6 +398,18 @@ function Get-ReportTypeInteractive {
     Write-Host "     4) All time (default)" -ForegroundColor Gray
     Write-Host "     5) Custom (enter start and end dates)" -ForegroundColor Gray
     $choice = Read-HostWithTimeout -Prompt "Enter choice [1-5]" -TimeoutSeconds 15 -Default "AllTime"
+=======
+}
+
+function Get-ReportTypeInteractive {
+    Write-Host "\nSelect report period:" -ForegroundColor Cyan
+    Write-Host "  1) Daily" -ForegroundColor Gray
+    Write-Host "  2) Weekly" -ForegroundColor Gray
+    Write-Host "  3) Monthly" -ForegroundColor Gray
+    Write-Host "  4) All time (default)" -ForegroundColor Gray
+    Write-Host "  5) Custom (enter start and end dates)" -ForegroundColor Gray
+    $choice = Read-HostWithTimeout -Prompt "Enter choice [1-5] or name (Daily/Weekly/Monthly/AllTime/Custom)" -TimeoutSeconds 15 -Default "AllTime"
+>>>>>>> Stashed changes
 
     switch -Regex ($choice.Trim()) {
         '^(1|daily)$'    { return @{ ReportType = 'Daily';   StartDate = $null; EndDate = $null } }
@@ -405,11 +435,19 @@ function Get-ReportTypeInteractive {
 }
 
 function Get-OutputFormatInteractive {
+<<<<<<< Updated upstream
     Write-Host "Select output format:" -ForegroundColor Cyan
     Write-Host "     1) Markdown (.md)" -ForegroundColor Gray
     Write-Host "     2) HTML (.html) [default]" -ForegroundColor Gray
     Write-Host "     3) JSON (.json)" -ForegroundColor Gray
     Write-Host "     4) CSV (.csv)" -ForegroundColor Gray
+=======
+    Write-Host "\nSelect output format:" -ForegroundColor Cyan
+    Write-Host "  1) Markdown (.md)" -ForegroundColor Gray
+    Write-Host "  2) HTML (.html) [default]" -ForegroundColor Gray
+    Write-Host "  3) JSON (.json)" -ForegroundColor Gray
+    Write-Host "  4) CSV (.csv)" -ForegroundColor Gray
+>>>>>>> Stashed changes
     $choice = Read-HostWithTimeout -Prompt "Enter choice [1-4] or name (Markdown/HTML/JSON/CSV)" -TimeoutSeconds 15 -Default "HTML"
 
     switch -Regex ($choice.Trim()) {
@@ -1190,6 +1228,7 @@ function Export-Report {
                                 ($s -replace '&','&amp;' -replace '<','&lt;' -replace '>','&gt;' -replace '"','&quot;')
                         }
 
+<<<<<<< Updated upstream
             $workHours = [Math]::Round(($Data.Git.EstimatedWorkMinutes / 60), 1)
             $repoDisplay = if ($Data.RepoPath) { & $encode $Data.RepoPath } else { 'Current workspace' }
             # Build a clickable file link to open the actual repo root in Explorer
@@ -1209,6 +1248,13 @@ function Export-Report {
                         $recent = @()
             if ($Data.Git.Commits -and $Data.Git.Commits.Count -gt 0) {
                 $recent = $Data.Git.Commits | Sort-Object Date -Descending | Select-Object -First $MaxCommits
+=======
+                        $workHours = [Math]::Round(($Data.Git.EstimatedWorkMinutes / 60), 1)
+                        $commitRows = ""
+                        $recent = @()
+                        if ($Data.Git.Commits -and $Data.Git.Commits.Count -gt 0) {
+                                $recent = $Data.Git.Commits | Sort-Object Date -Descending | Select-Object -First 10
+>>>>>>> Stashed changes
                                 foreach ($c in $recent) {
                                         $short = if ($c.Hash) { $c.Hash.Substring(0, [Math]::Min(7, $c.Hash.Length)) } else { '' }
                                         $msg = & $encode $c.Message
@@ -1218,6 +1264,7 @@ function Export-Report {
                                 }
                         }
 
+<<<<<<< Updated upstream
             # Delta chips if baseline provided
             $dc = $Data.Git.BaselineDelta
             function New-DeltaChip([int]$v) {
@@ -1389,10 +1436,82 @@ function Export-Report {
                         </div>
                     </div>
                     <div class="muted" style="font-size:12px;margin-top:6px;">Hover bars to see period details</div>
+=======
+            $kpiHtml = @"
+                                <div class="kpis">
+                                        <div class="kpi"><div class="kpi-label">Git Commits</div><div class="kpi-value">$($Data.Git.CommitCount)</div></div>
+                                        <div class="kpi"><div class="kpi-label">Lines Added</div><div class="kpi-value add">$($Data.Git.LinesAdded)</div></div>
+                                        <div class="kpi"><div class="kpi-label">Lines Removed</div><div class="kpi-value remove">$($Data.Git.LinesRemoved)</div></div>
+                                        <div class="kpi"><div class="kpi-label">Lines Modified</div><div class="kpi-value mod">$($Data.Git.LinesModified)</div></div>
+                                        <div class="kpi"><div class="kpi-label">Files Changed</div><div class="kpi-value">$($Data.Git.FilesChanged)</div></div>
+                                        <div class="kpi"><div class="kpi-label">Est. Work</div><div class="kpi-value">$($Data.Git.EstimatedWorkMinutes) min<br><span class="sub">($workHours h)</span></div></div>
+                                </div>
+"@
+
+            # Build activity trend data for a simple bar sparkline
+            $startChart = $null; $endChart = $null
+            if ($period) {
+                $pp = $period.Trim()
+                $parts = $pp -split '\s*-\s*'
+                if ($parts.Length -ge 2) {
+                    try { $startChart = [DateTime]::Parse($parts[0]); $endChart = [DateTime]::Parse($parts[1]) } catch {}
+                }
+            }
+            if (-not $startChart -and $Data.Git.Commits) {
+                $startChart = ($Data.Git.Commits | Select-Object -ExpandProperty Date | Sort-Object | Select-Object -First 1)
+            }
+            if (-not $endChart -and $Data.Git.Commits) {
+                $endChart = ($Data.Git.Commits | Select-Object -ExpandProperty Date | Sort-Object | Select-Object -Last 1)
+            }
+            if (-not $startChart) { $startChart = (Get-Date).Date }
+            if (-not $endChart)   { $endChart   = (Get-Date).Date }
+
+            $startChart = $startChart.Date; $endChart = $endChart.Date
+            $spanDays = [int]($endChart - $startChart).TotalDays + 1
+            $commitDates = @()
+            if ($Data.Git.Commits) { $commitDates = $Data.Git.Commits | ForEach-Object { $_.Date.Date } }
+            $labels = New-Object System.Collections.Generic.List[string]
+            $counts = New-Object System.Collections.Generic.List[int]
+            if ($spanDays -le 14) {
+                for ($d=0; $d -lt $spanDays; $d++) {
+                    $day = $startChart.AddDays($d)
+                    [void]$labels.Add($day.ToString('MM/dd'))
+                    $cnt = ($commitDates | Where-Object { $_ -eq $day }).Count
+                    [void]$counts.Add([int]$cnt)
+                }
+            } elseif ($spanDays -le 120) {
+                $s = $startChart
+                while ($s -le $endChart) {
+                    $e = $s.AddDays(6); if ($e -gt $endChart) { $e = $endChart }
+                    [void]$labels.Add($s.ToString('MM/dd'))
+                    $cnt = ($commitDates | Where-Object { $_ -ge $s -and $_ -le $e }).Count
+                    [void]$counts.Add([int]$cnt)
+                    $s = $s.AddDays(7)
+                }
+            } else {
+                $cursor = Get-Date -Date ($startChart.ToString('yyyy-MM-01'))
+                while ($cursor -le $endChart) {
+                    $next = $cursor.AddMonths(1).AddDays(-1); if ($next -gt $endChart) { $next = $endChart }
+                    [void]$labels.Add($cursor.ToString('MMM yy'))
+                    $cnt = ($commitDates | Where-Object { $_ -ge $cursor -and $_ -le $next }).Count
+                    [void]$counts.Add([int]$cnt)
+                    $cursor = $cursor.AddMonths(1)
+                }
+            }
+            $labelsJson = ($labels | ConvertTo-Json -Compress)
+            $countsJson = ($counts | ConvertTo-Json -Compress)
+
+            $chartSection = @"
+                <h2>Activity Trend</h2>
+                <div class="chart-card">
+                    <canvas id="trend" height="120"></canvas>
+                    <div class="muted" style="font-size:12px;margin-top:6px;">Commits per period</div>
+>>>>>>> Stashed changes
                 </div>
                 <script>
                 (function(){
                     var labels = $labelsJson;
+<<<<<<< Updated upstream
                     var bars = $barsJson;
                     var trend = $trendJson;
                     var tooltipBarLabel = '$tooltipBarLabel';
@@ -1796,6 +1915,39 @@ function Export-Report {
 "@
 
             $commitTable = if ($commitRows) {
+=======
+                    var counts = $countsJson;
+                    var c = document.getElementById('trend');
+                    if (!c || !counts || counts.length===0) { return; }
+                    var ctx = c.getContext('2d');
+                    function draw(){
+                        var w = c.clientWidth || 600;
+                        var h = c.height;
+                        c.width = w;
+                        ctx.clearRect(0,0,w,h);
+                        var pad = 24, innerW = w - pad*2, innerH = h - pad*2;
+                        var max = 0; for (var i=0;i<counts.length;i++){ if (counts[i]>max) max=counts[i]; }
+                        if (max===0) max = 1;
+                        var barW = innerW / counts.length * 0.7;
+                        var step = innerW / counts.length;
+                        ctx.strokeStyle = '#e5e7eb';
+                        ctx.beginPath(); ctx.moveTo(pad, h - pad + 0.5); ctx.lineTo(w - pad, h - pad + 0.5); ctx.stroke();
+                        for (var i=0;i<counts.length;i++){
+                            var x = pad + i*step + (step - barW)/2;
+                            var barH = (counts[i]/max) * innerH;
+                            var y = h - pad - barH;
+                            ctx.fillStyle = '#2d72a3';
+                            ctx.fillRect(x, y, barW, barH);
+                        }
+                    }
+                    draw();
+                    window.addEventListener('resize', draw);
+                })();
+                </script>
+"@
+
+                        $commitTable = if ($commitRows) {
+>>>>>>> Stashed changes
                                 @"
                                 <h2>Recent Commits</h2>
                                 <table class="table">
@@ -1804,12 +1956,16 @@ function Export-Report {
                                                 $commitRows
                                         </tbody>
                                 </table>
+<<<<<<< Updated upstream
                 $(if ($Data.Git.Commits.Count -gt $MaxCommits) { '<div class="muted" style="font-size:12px;margin-top:6px;">…and ' + ($Data.Git.Commits.Count - $MaxCommits) + ' more</div>' } else { '' })
+=======
+>>>>>>> Stashed changes
 "@
                         } else {
                                 '<p class="muted">No commits found in the selected period.</p>'
                         }
 
+<<<<<<< Updated upstream
                         # Filesystem card (if present)
                         $fsCard = ''
                         try {
@@ -1913,6 +2069,8 @@ function Export-Report {
                         if ($metaGeneratedText){ [void]$metaChips.Add("<span class='meta-chip'>$metaGeneratedText</span>") }
                         $metaChipsHtml = [string]::Join("`n                ", $metaChips)
 
+=======
+>>>>>>> Stashed changes
                         $FullHtml = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -1928,12 +2086,20 @@ function Export-Report {
                 @media (prefers-color-scheme: dark){
                         :root{ --bg:#0b0f14; --fg:#e5e7eb; --muted:#94a3b8; --card:#0f172a; --border:#233044; }
                 }
+<<<<<<< Updated upstream
                 body{ margin:0; padding:32px; font-family:Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:var(--fg); display:flex; min-height:100vh; flex-direction:column; }
                 .container{ max-width:1100px; margin:0 auto; width:100%; flex:1; display:block; }
                 header h1{ margin:0; font-size:26px; color:var(--brand); }
                 header .meta{ color:var(--muted); margin-top:4px; }
                 .cards{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:24px 0; }
                 .cards-single{ grid-template-columns:1fr; }
+=======
+                body{ margin:32px; font-family:Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:var(--fg); }
+                .container{ max-width:1100px; margin:0 auto; }
+                header h1{ margin:0; font-size:26px; color:var(--brand); }
+                header .meta{ color:var(--muted); margin-top:4px; }
+                .cards{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:24px 0; }
+>>>>>>> Stashed changes
                 .card{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
                 .kpis{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin-top:8px; }
                 .kpi{ background:#fff0; border:1px dashed var(--border); border-radius:8px; padding:12px; text-align:center; }
@@ -1943,15 +2109,19 @@ function Export-Report {
                 .kpi-value.add{ color:var(--add); }
                 .kpi-value.remove{ color:var(--remove); }
                 .kpi-value.mod{ color:var(--mod); }
+<<<<<<< Updated upstream
                 .delta-chip{ display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; font-size:11px; line-height:1; border:1px solid var(--border); vertical-align:middle; }
                 .delta-chip.up{ color:var(--add); border-color:var(--add); }
                 .delta-chip.down{ color:var(--remove); border-color:var(--remove); }
                 .delta-chip.neutral{ color:var(--muted); }
+=======
+>>>>>>> Stashed changes
                 h2{ color:var(--brand2); margin:22px 0 10px; font-size:20px; }
                 .table{ width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
                 .table thead{ background:var(--card); }
                 .table th, .table td{ padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
                 .muted{ color:var(--muted); }
+<<<<<<< Updated upstream
                 footer{ margin-top:24px; color:var(--muted); font-size:12px; padding-top:8px; border-top:1px solid var(--border); }
                 footer .meta-row{ margin-top:6px; }
                 code{ background:var(--card); padding:2px 6px; border-radius:6px; }
@@ -1976,12 +2146,19 @@ function Export-Report {
                 details[open] summary::before { transform: rotate(90deg); }
                 .details-content { margin-top:8px; color:var(--fg); }
                 .details-content a { color:var(--brand2); text-decoration:underline; }
+=======
+                footer{ margin-top:24px; color:var(--muted); font-size:12px; }
+                code{ background:var(--card); padding:2px 6px; border-radius:6px; }
+                #trend{ width:100%; display:block; }
+                .chart-card{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-top:16px; }
+>>>>>>> Stashed changes
         </style>
         </head>
 <body>
     <div class="container">
         <header>
             <h1>VA Power Platform Productivity Report</h1>
+<<<<<<< Updated upstream
         </header>
 
         <section class="intro" aria-label="About this report">
@@ -2131,6 +2308,40 @@ function Export-Report {
             <div class="meta-row" style="margin-bottom:6px; font-size:3px;">
                 $metaChipsHtml
             </div>
+=======
+            <div class="meta">$((if ($period) { "Period: $period" } else { '' }))</div>
+            <div class="meta">$((if ($generated) { "Generated: $generated" } else { "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" }))</div>
+            <div class="meta">$((if ($author) { "Author: $author" } else { '' }))</div>
+            <div class="meta">$((if ($team) { "Team: $team" } else { '' }))</div>
+            <div class="meta">$((if ($facility) { "Facility: $facility" } else { '' }))</div>
+        </header>
+
+        <section class="cards">
+            <div class="card">
+                <h2>Executive Summary</h2>
+                <p>Snapshot of development activity and estimated effort for the selected period.</p>
+                $kpiHtml
+            </div>
+            <div class="card">
+                <h2>Code Development Statistics</h2>
+                <ul class="muted" style="margin:6px 0 0 18px; line-height:1.6;">
+                    <li>Commits: $($Data.Git.CommitCount)</li>
+                    <li>Lines Added: $($Data.Git.LinesAdded)</li>
+                    <li>Lines Removed: $($Data.Git.LinesRemoved)</li>
+                    <li>Lines Modified: $($Data.Git.LinesModified)</li>
+                    <li>Files Changed: $($Data.Git.FilesChanged)</li>
+                    <li>Estimated Time: $($Data.Git.EstimatedWorkMinutes) minutes ($workHours hours)</li>
+                </ul>
+            </div>
+        </section>
+
+    $chartSection
+
+    $commitTable
+
+        <footer>
+            Generated by VA Power Platform Workspace Template · Report ID: $(Get-Date -Format 'yyyyMMdd-HHmmss')
+>>>>>>> Stashed changes
         </footer>
     </div>
 </body>
@@ -2178,6 +2389,7 @@ Filesystem Last Modified,$((if ($Data.Filesystem.LastModified) { $Data.Filesyste
 try {
     Write-Log "Starting productivity report generation" "INFO"
 
+<<<<<<< Updated upstream
     if (-not $Quiet) {
         Write-Host "VA Power Platform Productivity Report Generator" -ForegroundColor Green
         Write-Host "================================================" -ForegroundColor Green
@@ -2193,6 +2405,18 @@ try {
 
     # Determine date range (interactive if no parameters provided)
     if (-not $NonInteractive -and -not $PSBoundParameters.ContainsKey('ReportType') -and -not $PSBoundParameters.ContainsKey('StartDate') -and -not $PSBoundParameters.ContainsKey('EndDate')) {
+=======
+    Write-Host "VA Power Platform Productivity Report Generator" -ForegroundColor Green
+    Write-Host "================================================" -ForegroundColor Green
+    Show-IntroText
+    New-Divider
+
+    $progressId = 1
+    Write-Progress -Id $progressId -Activity "Productivity Report" -Status "Preparing..." -PercentComplete 5
+
+    # Determine date range (interactive if no parameters provided)
+    if (-not $PSBoundParameters.ContainsKey('ReportType') -and -not $PSBoundParameters.ContainsKey('StartDate') -and -not $PSBoundParameters.ContainsKey('EndDate')) {
+>>>>>>> Stashed changes
         Show-Header "Report Setup"
     $selection = Get-ReportTypeInteractive
         $ReportType = $selection.ReportType
@@ -2253,6 +2477,16 @@ try {
 
     if (-not $Quiet) { Write-Progress -Id $progressId -Activity "Productivity Report" -Status "Analyzing workspace activity..." -PercentComplete 35 }
 
+    # Select output format (interactive if not provided)
+    if (-not $PSBoundParameters.ContainsKey('OutputFormat')) {
+        $OutputFormat = Get-OutputFormatInteractive
+    }
+    Write-Host "Output Format: $OutputFormat" -ForegroundColor Yellow
+
+    Show-ConfigSummary -ReportType $ReportType -StartDate $StartDate -EndDate $EndDate -OutputFormat $OutputFormat -OpenAfterGeneration:$OpenAfterGeneration -IncludeDetailed:$IncludeDetailed
+
+    Write-Progress -Id $progressId -Activity "Productivity Report" -Status "Analyzing workspace activity..." -PercentComplete 35
+
     # Generate output path if not specified
     if ([string]::IsNullOrEmpty($OutputPath)) {
         $ReportsPath = if ($OutputDir) { $OutputDir } else { "$PSScriptRoot\..\docs\reports" }
@@ -2275,11 +2509,16 @@ try {
         }
     }
 
+<<<<<<< Updated upstream
     if (-not $Quiet) { Show-Header "Analyzing Workspace Activity" }
+=======
+    Show-Header "Analyzing Workspace Activity"
+>>>>>>> Stashed changes
 
     # Collect productivity data
     $ProductivityData = Get-ProductivityData -DateRange $DateRange -RepoPath $GitRepoPath -GitRef $GitRef -AllBranches:$AllBranches
 
+<<<<<<< Updated upstream
     # Optional baseline comparison
     $Baseline = $null
     if ($BaselineJson -and (Test-Path -LiteralPath $BaselineJson)) {
@@ -2302,10 +2541,15 @@ try {
 
     if (-not $Quiet) { Write-Progress -Id $progressId -Activity "Productivity Report" -Status "Generating report..." -PercentComplete 70 }
     if (-not $Quiet) { Show-Header "Generating Report" }
+=======
+    Write-Progress -Id $progressId -Activity "Productivity Report" -Status "Generating report..." -PercentComplete 70
+    Show-Header "Generating Report"
+>>>>>>> Stashed changes
 
     # Generate report content
     $ReportContent = Format-MarkdownReport -Data $ProductivityData -DateRange $DateRange
 
+<<<<<<< Updated upstream
     if (-not $Quiet) { Write-Progress -Id $progressId -Activity "Productivity Report" -Status "Exporting report..." -PercentComplete 85 }
     # Export report(s)
     if ($ExportFormats -and $ExportFormats.Count -gt 0) {
@@ -2327,10 +2571,16 @@ try {
     } else {
         Export-Report -Content $ReportContent -Format $OutputFormat -OutputPath $OutputPath -Data $ProductivityData
     }
+=======
+    Write-Progress -Id $progressId -Activity "Productivity Report" -Status "Exporting report..." -PercentComplete 85
+    # Export report
+    Export-Report -Content $ReportContent -Format $OutputFormat -OutputPath $OutputPath -Data $ProductivityData
+>>>>>>> Stashed changes
 
     # Summary
     $FileSize = (Get-Item $OutputPath).Length
 
+<<<<<<< Updated upstream
     if (-not $Quiet) { Write-Progress -Id $progressId -Activity "Productivity Report" -Completed }
 
     if (-not $Quiet) {
@@ -2346,6 +2596,19 @@ try {
         Write-Host "   Lines Changed: $($ProductivityData.Git.LinesAdded + $ProductivityData.Git.LinesRemoved + $ProductivityData.Git.LinesModified)" -ForegroundColor Gray
         Write-Host "   Estimated Work: $($ProductivityData.Git.EstimatedWorkMinutes) minutes" -ForegroundColor Gray
     }
+=======
+    Write-Progress -Id $progressId -Activity "Productivity Report" -Completed
+
+    Show-Header "Report Generated"
+    Write-Host "Productivity report generated successfully!" -ForegroundColor Green
+    Write-Host "Report file: $OutputPath" -ForegroundColor Cyan
+    Write-Host "File size: $([math]::Round($FileSize / 1KB, 2)) KB" -ForegroundColor Yellow
+
+    Show-SubHeader "Report Summary"
+    Write-Host "   Git Commits: $($ProductivityData.Git.CommitCount)" -ForegroundColor Gray
+    Write-Host "   Lines Changed: $($ProductivityData.Git.LinesAdded + $ProductivityData.Git.LinesRemoved + $ProductivityData.Git.LinesModified)" -ForegroundColor Gray
+    Write-Host "   Estimated Work: $($ProductivityData.Git.EstimatedWorkMinutes) minutes" -ForegroundColor Gray
+>>>>>>> Stashed changes
 
     # Open file if requested
     $opened = $false
@@ -2371,6 +2634,7 @@ try {
 
     Write-Log "Productivity report generated successfully: $OutputPath" "SUCCESS"
 
+<<<<<<< Updated upstream
     # Exit behavior: if the HTML report was opened successfully, don't prompt (allow window/process to close).
     # If it was not opened (error or non-HTML), keep the prompt so the user can read output/errors.
     $isHtml = $false
@@ -2383,13 +2647,22 @@ try {
 
     # Restore original progress preference
     if ($PSBoundParameters.ContainsKey('origProgressPreference') -or $null -ne $origProgressPreference) { $ProgressPreference = $origProgressPreference }
+=======
+    # Keep window open so user can read output
+    try { [void](Read-Host -Prompt "\nPress Enter to exit") } catch {}
+>>>>>>> Stashed changes
 
 } catch {
     Write-Log "Error generating productivity report: $($_.Exception.Message)" "ERROR"
     Write-Host "Error generating report: $($_.Exception.Message)" -ForegroundColor Red
+<<<<<<< Updated upstream
     # Pause on error as well so the user can read the message (if interactive)
     if (-not $NonInteractive -and -not $Quiet) { try { [void](Read-Host -Prompt "Press Enter to exit") } catch {} }
     # Restore original progress preference on error
     if ($PSBoundParameters.ContainsKey('origProgressPreference') -or $null -ne $origProgressPreference) { $ProgressPreference = $origProgressPreference }
+=======
+    # Pause on error as well so the user can read the message
+    try { [void](Read-Host -Prompt "\nPress Enter to exit") } catch {}
+>>>>>>> Stashed changes
     exit 1
 }
